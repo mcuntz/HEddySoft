@@ -40,8 +40,8 @@ if __name__ == '__main__':
     #          End: 2022-04-08 23:30:00
     # NT - Start SLT: 2012-04-23 18:00:00
     # NT - Start Smartflux: 2019-07-22 08:30:00
-    startdate = '2012-06-01 18:00:00'  # first day and time
-    enddate   = '2012-06-02 18:30:00'  # last day and time (not included)
+    startdate = '2022-06-01 18:00:00'  # first day and time
+    enddate   = '2022-06-05 18:30:00'  # last day and time (not included)
 
     # produce timelag files only
     dotimelag = False
@@ -316,11 +316,14 @@ if __name__ == '__main__':
             for yy in range(isdate.year, iedate.year + 1):
                 if issmart:
                     if yy >= 2024:
-                        ddir = f'{rawdir}/{yy}/Auto/Smartflux{utower}/raw'
+                        ddir = (f'{rawdir}/{yy}/Auto/'
+                                f'Smartflux{tower.upper()}/raw')
                     elif yy == 2023:
-                        ddir = f'{rawdir}/{yy}/Auto/Smartflux{utower}_{yy}/raw'
+                        ddir = (f'{rawdir}/{yy}/Auto/'
+                                f'Smartflux{tower.upper()}_{yy}/raw')
                     else:
-                        ddir = f'{rawdir}/{yy}/Auto/Smartflux{utower}_{yy}'
+                        ddir = (f'{rawdir}/{yy}/Auto/'
+                                f'Smartflux{tower.upper()}_{yy}')
                 else:
                     if ltower == 'nt':
                         utower = tower.upper()
@@ -414,7 +417,8 @@ if __name__ == '__main__':
         cfg['rotation']['dir'] = planarfitdir
         cfg['rotation']['files'] = pfile
 
-        # cfg['param']
+        if dotimelag:
+            cfg['param']['write_spectral_files'] = 'False'
 
         # cfg['plot']
 
