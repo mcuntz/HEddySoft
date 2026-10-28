@@ -140,7 +140,7 @@ if __name__ == '__main__':
     if dotimelag:
         print('Timelags only')
 
-    mfile = f'{workdir}/meteo.csv'
+    mfile = f'{workdir}/meteo.csv.gz'
     if os.path.exists(mfile):
         print(f'    Remove meteo file {mfile}')
         os.remove(mfile)
@@ -149,14 +149,14 @@ if __name__ == '__main__':
         dfm = pd.DataFrame()
         for yy in range(syear, eyear + 1):
             print(f'        meteo year {yy}')
-            idf = pd.read_csv(f'{meteobase}{yy}.csv', index_col=0,
+            idf = pd.read_csv(f'{meteobase}{yy}.csv.gz', index_col=0,
                               parse_dates=True, date_format='ISO8601')
             dfm = pd.concat([dfm, idf])
         print(f'    New meteo file {mfile}')
         dfm.to_csv(mfile, index_label=dfm.index.name)
     else:
         print(f'        meteo year {syear}')
-        ifile = f'{meteobase}{syear}.csv'
+        ifile = f'{meteobase}{syear}.csv.gz'
         print(f'    New meteo file {mfile}')
         shutil.copy2(ifile, mfile)
 
@@ -404,7 +404,7 @@ if __name__ == '__main__':
         cfg['irga']['h2o_type'] = h2o_type[0].strip()
 
         cfg['meteo']['dir'] = workdir
-        cfg['meteo']['files'] = 'meteo.csv'
+        cfg['meteo']['files'] = 'meteo.csv.gz'
 
         # cfg['timelag']
 

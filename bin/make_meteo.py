@@ -19,7 +19,7 @@ Example
     python make_meteo_seasonalfile.py
 
     # 3. set fillmeandiurnal = True and seasonalfile
-    #    seasonalfile = 'meteo_nt_seasonalfile_2017-2022.csv'
+    #    seasonalfile = 'meteo_nt_seasonalfile_2017-2022.csv.gz'
     #    and run make_meteo for tower and years again
     python make_meteo.py
 
@@ -35,6 +35,7 @@ History
    * Catch all NaN in PA column if added missing column,
      Jul 2023, Matthias Cuntz
    * Change for HEddySoft, Oct 2026, Matthias Cuntz
+   * gzip output files, Oct 2026, Matthias Cuntz
 
 """
 import time as ptime
@@ -113,24 +114,17 @@ if __name__ == '__main__':
 
     # which tower: eiffel (incl. scaffold) or nt (> 2012-05-24 16:00:00)
     tower = 'nt'
-    years = [2022]  # list
+    # years = [2022]  # list
     # eiffel
-    # years = 1997 + np.arange(19, dtype=int)  # 1997-2015
-    # years = 2017 + np.arange(4, dtype=int)  # 2017-2020
     # years = 1997 + np.arange(24, dtype=int)  # 1997-2020
     # nt
-    # years = 2012 + np.arange(4, dtype=int)  # 2012-2015
-    # years = 2017 + np.arange(6, dtype=int)  # 2017-2022
     years = 2012 + np.arange(14, dtype=int)  # 2012-2022
     fullyear = True  # True: end on 31 December
                      # False: end with youngest date in input files
     undef = -9999.   # Set NaN and fill
     fillmeandiurnal = True  # False: keep NaN of raw files
                              # True: replace NaN by mean diurnal cycle
-    # seasonalfile = 'biomet_eiffel_seasonalfile_1997-2015.csv'
-    # seasonalfile = 'biomet_eiffel_seasonalfile_2017-2020.csv'
-    # seasonalfile = 'biomet_nt_seasonalfile_2012-2015.csv'
-    seasonalfile = 'meteo_nt_seasonalfile_2012-2025.csv'
+    seasonalfile = 'meteo_nt_seasonalfile_2012-2025.csv.gz'
 
     # base directories to which all other directories are relative to
     # # @Station_calcul_Hesse
@@ -176,7 +170,7 @@ if __name__ == '__main__':
         ltower = tower.lower()
         if ltower == 'nt':
             assert year >= 2012, 'No new tower NT before 2012'
-        biometfile = f'{outdir}/meteo_{ltower}_{year}.csv'
+        biometfile = f'{outdir}/meteo_{ltower}_{year}.csv.gz'
 
         if year == 1997:
             mvar = {'RH_3_1_1': 'RH', 'TA_3_1_1': 'TA',
