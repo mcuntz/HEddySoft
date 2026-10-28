@@ -21,6 +21,7 @@ strategy of Mauder et al. (2013, `10.1016/j.agrformet.2012.09.006_`)
 for quality control.
 
 Differences to GEddySoft_ are:
+
 * Bug fixes
 * Only energy, water, and CO2 fluxes
 * Spike detection by Mean Absolute Deviation (MAD)
