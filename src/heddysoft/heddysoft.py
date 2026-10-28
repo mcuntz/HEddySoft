@@ -112,12 +112,19 @@ def heddysoft(config, dotimelag=False):
     if not (output_path.startswith('/') or (output_path[1] == ':')):
         output_path = f'{base_dir}/{output_path}'
     os.makedirs(output_path, exist_ok=True)
+
     output_file = cfg.get('files', 'output_file')
     output_base = output_file[:output_file.rfind('.')]
     output_end = output_file[output_file.rfind('.'):]
     output_file = (f'{output_path}/{output_base}'
                    f'_{sdate.strftime("%Y%m%d%H%M%S")}'
                    f'-{edate.strftime("%Y%m%d%H%M%S")}{output_end}')
+
+    # spectral output path
+    write_spectral_files = cfg.get('param', 'write_spectral_files')
+    if write_spectral_files:
+            spectral_path = f'{output_path}/spectral'
+            os.makedirs(output_path, exist_ok=True)
 
     # output path if any plotting True
     idoplot = False

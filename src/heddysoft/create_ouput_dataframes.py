@@ -55,7 +55,7 @@ def create_ouput_dataframe(indx, file_length):
     odf['air_sat (Pa)'] = np.nan
     odf['air_temperature (K)'] = np.nan
     odf['air_vpd (Pa)'] = np.nan
-    odf['complete_sonic_T (0-1)'] = np.nan
+    odf['complete_sonic_ts (0-1)'] = np.nan
     odf['complete_sonic_wind (0-1)'] = np.nan
     odf['ea (Pa)'] = np.nan
     odf['ea_dry (Pa)'] = np.nan
@@ -121,6 +121,63 @@ def create_ouput_dataframe(indx, file_length):
     odf['LE_qc'] = 2
     
     return odf
+
+
+def create_spectral_dictionary(indx, file_length, num_freq_bins):
+    """
+    Create the spectral output dictionary
+
+    Parameters
+    ----------
+    indx : numpy.datetime64
+        Datetime for index
+    file_length : int
+        Length of timestep in seconds
+
+    Returns
+    -------
+    dict
+        Dictionary with three DataFrames with all entries NaN
+
+    """
+    # scalar values
+    idf = pd.DataFrame({}, index=[indx])
+    idf.index.name = 'TIMESTAMP_START'
+
+    idf['TIMESTAMP_END'] = indx + np.timedelta64(file_length, 's')
+
+    idf['wT'] = np.nan
+    idf['wind_speed'] = np.nan
+    idf['wind_direction'] = np.nan
+    idf['u_star'] = np.nan
+    idf['z/L'] = np.nan
+    idf['num_spikes_w'] = np.nan
+    idf['itc_w'] = np.nan
+    idf['steady_state_wc_co2_Mahrt1998'] = np.nan
+    idf['steady_state_wc_h2o_Mahrt1998'] = np.nan
+    idf['F_co2'] = np.nan
+    idf['F_h2o'] = np.nan
+
+    # len 12 variables
+    pdf = pd.DataFrame()
+
+    pdf['ipt_w'] = np.full(12, np.nan)
+    pdf['ipt_co2'] = np.full(12, np.nan)
+    pdf['ipt_h2o'] = np.full(12, np.nan)
+
+    # len num_freq_bins (50) variables
+    sdf = pd.DataFrame()
+
+    sdf['freq'] = np.full(num_freq_bins, np.nan)
+    sdf['cospec_wT_scaled'] = np.full(num_freq_bins, np.nan)
+    sdf['spec_co2_scaled'] = np.full(num_freq_bins, np.nan)
+    sdf['cospec_wc_co2_scaled'] = np.full(num_freq_bins, np.nan)
+    sdf['spec_h2o_scaled'] = np.full(num_freq_bins, np.nan)
+    sdf['cospec_wc_h2o_scaled'] = np.full(num_freq_bins, np.nan)
+
+    out = {'scalar': idf, 'instrument': pdf, 'spectral': sdf}
+
+    return out
 
 
 def create_timelag_dataframe(indx, file_length):

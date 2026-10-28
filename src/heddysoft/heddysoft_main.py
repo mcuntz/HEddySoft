@@ -22,6 +22,7 @@ History
 
 """
 import os
+import pickle
 import numpy as np
 from .air import g, Mv, Rgas, T0, vonKarman
 from .air import esat, lambda_evap, rhocp
@@ -29,16 +30,18 @@ from .check_limits import check_limits
 from .config import read_config, get_config_base_dir
 from .cospectrum import cospectrum
 from .create_ouput_dataframes import create_ouput_dataframe
+from .create_ouput_dataframes import create_spectral_dictionary
 from .flux_uncertainties import flux_uncertainties
 from .instrument_problems_tests import instrument_problems_tests
 from .lagged_covariance import cov, lagged_covariance
 from .li7200_diag2df import li7200_diag2df
+from .log_bin_spectrum import log_bin_spectrum
 from .nanfunctions import nandetrend
 from .read_files import read_raw_datafile
 from .spike_detection import spike_detection_vickers_mahrt_1997
 from .spike_detection import spike_detection_mauder_et_al_2013
 from .test_itc import test_itc
-from .test_steady_state import test_steady_state_FW96
+from .test_steady_state import test_steady_state_FW96, test_steady_state_M98
 from .wet2dry_mixing_ratio import wet2dry_mixing_ratio
 from .wind_direction import wind_direction
 from .wind_rotation import wind_rotation
@@ -50,7 +53,7 @@ __all__ = ['heddysoft_main']
 def _save_df(df, ofile):
     """
     Append DataFrame to file
-    
+
     Parameters
     ----------
     df : pandas.DataFrame
@@ -77,7 +80,7 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
                    timelag_dict={}, rotation_matrix=None):
     """
     Process a single sonic/irga file
-    
+
     Parameters
     ----------
     config : str or astConfigParser
@@ -117,6 +120,15 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
     odf = create_ouput_dataframe(df.index[0].replace(microsecond=0),
                                  file_length)
 
+    write_spectral_files = cfg.get('param', 'write_spectral_files')
+    num_freq_bins = cfg.get('param', 'num_freq_bins')
+    if write_spectral_files:
+        sdf = create_spectral_dictionary(df.index[0].replace(microsecond=0),
+                                         file_length, num_freq_bins)
+        scalar_df = sdf['scalar']
+        instrument_df = sdf['instrument']
+        spectral_df = sdf['spectral']
+
     # set sonic and irga flags
     sonic_names = [ s.strip() for s in cfg.get('sonic', 'names').split(',') ]
     if 'sonic_flag' in sonic_names:
@@ -142,7 +154,7 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
         if (diag_count.drop(
                 columns=['AGC', 'Sync', 'Aux_input']) != 0).any(
                     axis=1).any():
-            print(f'IRGA data flagged in {ifile}.')
+            print(f'        IRGA data flagged in {ifile}.')
             _save_df(odf, output_file)
             return
         # print('      Number and type of LI7200 diagnostic flags raised:')
@@ -178,8 +190,8 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
             'w': cfg.get('sonic', 'w_lim'),
             'ts': cfg.get('sonic', 'ts_lim')}
     for ss in ['u', 'v', 'w', 'ts']:
-        sdf, ii = check_limits(df[ss].to_numpy(), dlim[ss])
-        df[ss] = sdf
+        ldf, ii = check_limits(df[ss].to_numpy(), dlim[ss])
+        df[ss] = ldf
         odf[f'num_limits_{ss} (#)'] = ii.size
 
     dlim = {'CO2_dry': cfg.get('irga', 'co2_lim'),
@@ -188,16 +200,45 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
         Tname = f'{TT}_dry'
         tt = TT.lower()
 
-        sdf, ii = check_limits(df[Tname].to_numpy(), dlim[Tname])
-        df[Tname] = sdf
+        ldf, ii = check_limits(df[Tname].to_numpy(), dlim[Tname])
+        df[Tname] = ldf
         odf[f'num_limits_{ss} (#)'] = ii.size
+
+    #
+    # 1st check that enough data to catch faulty files
+    #
+
+    sampling_rate = cfg.get('sonic', 'sampling_rate')
+    nsoll = file_length * sampling_rate
+    nsoll_ratio = cfg.get('param', 'data_complete')
+    nist = df[sonic_names[:3]].notna().sum(axis=0)  # u, v, w
+    ratio_u = nist.min() / nsoll
+    odf['complete_sonic_wind (0-1)'] = ratio_u
+    if ratio_u < nsoll_ratio:
+        print(f'        Not enough sonic data in {ifile}, only about'
+              f' {ratio_u * 100:.2f}% (config param.data_complete:'
+              f' {nsoll_ratio * 100:.2f}%).')
+        _save_df(odf, output_file)
+        return
+
+    for TT in ['CO2', 'H2O']:
+        Tname = f'{TT}_dry'
+        tt = TT.lower()
+
+        ratio_irga = df[Tname].notna().sum() / nsoll
+        odf[f'complete_irga_{tt} (0-1)'] = ratio_irga
+        if ratio_irga < nsoll_ratio:
+            print(f'        Not enough {TT} data after high frequency checks'
+                  f' in {ifile}, only about {ratio_irga * 100:.2f}% (config'
+                  f' param.data_complete: {nsoll_ratio * 100:.2f}%).')
+            _save_df(odf, output_file)
+            return
 
     #
     # Spike detection
     #
 
     # w, ts spike detection
-    sampling_rate = cfg.get('sonic', 'sampling_rate')
     spike_mode = cfg.get('spikes', 'mode')
     if spike_mode != 0:
         plot_spike_detection = cfg.get('plot', 'spike_detection')
@@ -207,7 +248,7 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
             spike_max_consec = cfg.get('spikes', 'max_consecutive_spikes')
             for ss in ['w', 'ts']:
                 spike_threshold = cfg.get('spikes', f'threshold_{ss}')
-                sdf, ii_spike, nspikeevents = spike_detection_vickers_mahrt_1997(
+                idf, ii_spike, nspikeevents = spike_detection_vickers_mahrt_1997(
                     df[ss].to_numpy(),
                     spike_mode=spike_mode,
                     avrg_len=int(file_length / 60),
@@ -217,7 +258,7 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
                     error_value=np.nan,
                     series_label=ss,
                     ctrplot=plot_spike)
-                df[ss] = sdf
+                df[ss] = idf
                 if ss == 'w':
                     num_spikes_w = int(sum(ii_spike))
                 else:
@@ -225,11 +266,11 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
         elif spike_method.lower().startswith('mauder'):
             z_mad = cfg.get('spikes', 'z_mad')
             for ss in ['w', 'ts']:
-                sdf, ii_spike = spike_detection_mauder_et_al_2013(
+                idf, ii_spike = spike_detection_mauder_et_al_2013(
                     df[ss].to_numpy(), z=z_mad,
                     spike_mode=spike_mode,
                     plot=plot_spike, plot_label=ss)
-                df[ss] = sdf
+                df[ss] = idf
                 if ss == 'w':
                     num_spikes_w = int(sum(ii_spike))
                 else:
@@ -243,6 +284,9 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
     odf['num_spikes_w (#)'] = num_spikes_w
     odf['num_spikes_ts (#)'] = num_spikes_ts
 
+    if write_spectral_files:
+        scalar_df['num_spikes_w'] = num_spikes_w
+
     # irga spike detection
     for TT in ['CO2', 'H2O']:
         Tname = f'{TT}_dry'
@@ -251,7 +295,7 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
         if spike_mode != 0:
             if spike_method.lower().startswith('vickers'):
                 spike_threshold = cfg.get('spikes', 'threshold_irga')
-                sdf, ii_spike, nspikeevents = spike_detection_vickers_mahrt_1997(
+                idf, ii_spike, nspikeevents = spike_detection_vickers_mahrt_1997(
                     df[Tname].to_numpy(),
                     spike_mode=spike_mode,
                     avrg_len=int(file_length / 60),
@@ -261,14 +305,14 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
                     error_value=np.nan,
                     series_label=Tname,
                     ctrplot=plot_spike)
-                df[Tname] = sdf
+                df[Tname] = idf
                 num_spikes = int(sum(ii_spike))
             elif spike_method.lower().startswith('mauder'):
-                sdf, ii_spike = spike_detection_mauder_et_al_2013(
+                idf, ii_spike = spike_detection_mauder_et_al_2013(
                     df[Tname].to_numpy(), z=z_mad,
                     spike_mode=spike_mode,
                     plot=plot_spike, plot_label=Tname)
-                df[Tname] = sdf
+                df[Tname] = idf
                 num_spikes = sum(ii_spike)
         else:
             num_spikes = np.nan
@@ -281,41 +325,41 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
 
     # tests on instrument malfunctions from Vitale et al. (2020)
     detrend_T = cfg.get('param', 'detrend_temperature_signal')
-    do_inst_tests = cfg.get('param', 'instrument_problems_tests')
-    if do_inst_tests:
+    detrend_irga = cfg.get('param', 'detrend_irga_signal')
+    if write_spectral_files:
         plot_instrument_problems_tests = cfg.get('plot',
                                                  'instrument_problems_tests')
         plot_problems_tests = (plot_base if plot_instrument_problems_tests
                                else '')
         ipt_w = instrument_problems_tests(
             df['w'].to_numpy(), False, sampling_rate, plot_problems_tests, 'w')
-        ipt_T = instrument_problems_tests(
+        ipt_ts = instrument_problems_tests(
             df['ts'].to_numpy(), detrend_T, sampling_rate,
             plot_problems_tests, 'ts')
 
-    detrend_irga = cfg.get('param', 'detrend_irga_signal')
-    for TT in ['CO2', 'H2O']:
-        Tname = f'{TT}_dry'
-        tt = TT.lower()
+        instrument_df['ipt_w'] = ipt_w
 
-        # tests on instrument malfunctions from Vitale et al. (2020)
-        if do_inst_tests:
+        for TT in ['CO2', 'H2O']:
+            Tname = f'{TT}_dry'
+            tt = TT.lower()
+
+            # tests on instrument malfunctions from Vitale et al. (2020)
             ipt = instrument_problems_tests(
                 df[Tname].to_numpy(), detrend_irga, sampling_rate,
                 plot_problems_tests, TT)
+
+        instrument_df[f'ipt_{tt}'] = ipt
 
     #
     # Check enough data after high frequency checks
     #
 
     # check that enough data
-    nsoll = file_length * sampling_rate
-    nsoll_ratio = cfg.get('param', 'data_complete')
     nist = df[sonic_names[:3]].notna().sum(axis=0)  # u, v, w
     ratio_u = nist.min() / nsoll
     odf['complete_sonic_wind (0-1)'] = ratio_u
     if ratio_u < nsoll_ratio:
-        print(f'Not enough sonic data in {ifile}, only about'
+        print(f'        Not enough sonic data in {ifile}, only about'
               f' {ratio_u * 100:.2f}% (config param.data_complete:'
               f' {nsoll_ratio * 100:.2f}%).')
         _save_df(odf, output_file)
@@ -328,8 +372,8 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
         ratio_irga = df[Tname].notna().sum() / nsoll
         odf[f'complete_irga_{tt} (0-1)'] = ratio_irga
         if ratio_irga < nsoll_ratio:
-            print(f'Not enough {TT} data after high frequency checks in'
-                  f' {ifile}, only about {ratio_irga * 100:.2f}% (config'
+            print(f'        Not enough {TT} data after high frequency checks'
+                  f' in {ifile}, only about {ratio_irga * 100:.2f}% (config'
                   f' param.data_complete: {nsoll_ratio * 100:.2f}%).')
             _save_df(odf, output_file)
             return
@@ -373,6 +417,10 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
     odf['wind_direction_mean (degree)'] = wd_mean
     odf['wind_direction_std (degree)'] = wd_std
 
+    if write_spectral_files:
+        scalar_df['wind_speed'] = ws_mean
+        scalar_df['wind_direction'] = wd_mean
+
     # interpolate wind and scalar data
     df['u_rot_f'] = df['u_rot'].interpolate(method='nearest')
     df['v_rot_f'] = df['v_rot'].interpolate(method='nearest')
@@ -380,12 +428,12 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
     df['ts_f'] = df['ts'].interpolate(method='nearest')
     df['ts_f'] += T0
 
-    ratio_T = df['ts_f'].notna().sum() / nsoll
-    odf['complete_sonic_T (0-1)'] = ratio_T
-    if ratio_T < nsoll_ratio:
-        print(f'Not enough T_sonic data after interpolation in {ifile},'
-              f' only about {ratio_T * 100:.2f}% (config param.data_complete:'
-              f' {nsoll_ratio * 100:.2f}%).')
+    ratio_ts = df['ts_f'].notna().sum() / nsoll
+    odf['complete_sonic_ts (0-1)'] = ratio_ts
+    if ratio_ts < nsoll_ratio:
+        print(f'        Not enough T_sonic data after interpolation in'
+              f' {ifile}, only about {ratio_ts * 100:.2f}%'
+              f' (config param.data_complete: {nsoll_ratio * 100:.2f}%).')
         _save_df(odf, output_file)
         return
 
@@ -395,13 +443,16 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
     df['w_prime'] = df['w_rot_f'] - df['w_rot_f'].mean()
     # check for Nans and replace NaN by zero
     if df['u_prime'].isna().any():
-        print("      Warning: NaN values detected in u': replacing with 0.")
+        print("          Warning: NaN values detected in u': replacing with"
+              " 0.")
         df['u_prime'] = df['u_prime'].fillna(0.)
     if df['v_prime'].isna().any():
-        print("      Warning: NaN values detected in v': replacing with 0.")
+        print("          Warning: NaN values detected in v': replacing with"
+              " 0.")
         df['v_prime'] = df['v_prime'].fillna(0.)
     if df['w_prime'].isna().any():
-        print("      Warning: NaN values detected in w': replacing with 0.")
+        print("          Warning: NaN values detected in w': replacing with"
+              " 0.")
         df['w_prime'] = df['w_prime'].fillna(0.)
 
     # covariances of wind components
@@ -423,8 +474,11 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
     odf['u_star (m s-1)'] = u_star
     odf['sigma_w (m s-1)'] = df['w_prime'].std(ddof=1)
 
+    if write_spectral_files:
+        scalar_df['u_star'] = u_star
+
     # ToDo? IRGA treatment should be here
-    
+
     # temperature T from virtual sonic temperature T_sonic
     # and water vapor concentration
     #   T_sonic = T * (1 + 0.32 * w)
@@ -433,9 +487,9 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
     ratio_h2o = df['h2o_f'].notna().sum() / nsoll
     if ratio_h2o < nsoll_ratio:
         odf['complete_irga_h2o (0-1)'] = ratio_h2o
-        print(f'Not enough H2O data after interpolation in {ifile}, only about'
-              f' {ratio_h2o * 100:.2f}% (config param.data_complete:'
-              f' {nsoll_ratio * 100:.2f}%).')
+        print(f'        Not enough H2O data after interpolation in {ifile},'
+              f' only about {ratio_h2o * 100:.2f}% (config'
+              f' param.data_complete: {nsoll_ratio * 100:.2f}%).')
         _save_df(odf, output_file)
         return
     # H2O data is in mmol/mol, i.e. ea/p * 1000.
@@ -445,7 +499,8 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
     else:
         df['T_prime'] = df['T'] - df['T'].mean()
     if df['T_prime'].isna().any():
-        print("      Warning: NaN values detected in T': replacing with 0.")
+        print("          Warning: NaN values detected in T': replacing with"
+              " 0.")
         df['T_prime'] = df['T_prime'].fillna(0.)
 
     # mean meteo
@@ -507,20 +562,27 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
     odf['V_mol_dry (m3 mol-1)'] = Vd
     odf['lambda (J kg-1)'] = lmbda
 
+    if write_spectral_files:
+        scalar_df['wT'] = wT
+
     # cospectra
     # linear frequency axis for cospectrum
     f = np.arange(0, np.ceil(nsoll / 2) + 1) / file_length
-    plot_cospectrum = cfg.get('plot', 'cospectrum')
-    if plot_cospectrum:
+    if write_spectral_files:
+        plot_cospectrum = cfg.get('plot', 'cospectrum')
         plot_spectrum = plot_base if plot_cospectrum else ''
         # spectrum for T
         spec_T, spec_T_scaled, _ = cospectrum(
-            cfg, df['T_prime'], df['T_prime'], f, ws_mean, spectrum_type='spec',
-            plot=plot_spectrum, tag='T')
+            cfg, df['T_prime'], df['T_prime'], f, ws_mean,
+            spectrum_type='spec', plot=plot_spectrum, tag='T')
         # cospectrum for wT
         cospec_wT, cospec_wT_scaled, _ = cospectrum(
-            cfg, df['w_prime'], df['T_prime'], f, ws_mean, spectrum_type='cospec',
-            plot=plot_spectrum, tag='wT')
+            cfg, df['w_prime'], df['T_prime'], f, ws_mean,
+            spectrum_type='cospec', plot=plot_spectrum, tag='wT')
+
+        spectral_df['freq'] = log_bin_spectrum(f, np.zeros(len(f)),
+                                               num_freq_bins, f[1], f[-1])[0]
+        spectral_df['cospec_wT_scaled'] = cospec_wT_scaled
 
     # steady state test for wT according to Foken and Wichura 1996
     steady_state_wT_FW96 = (
@@ -544,6 +606,9 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
 
     odf['L (m)'] = L
     odf['z/L'] = zoL
+
+    if write_spectral_files:
+        scalar_df['z/L'] = np.nan
 
     # potential temperature, theta
     # virtual potential temperature, theta_v
@@ -573,6 +638,9 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
     odf['itc_w (%)'] = itc_w
     odf['itc_u (%)'] = itc_u
     odf['itc_T (%)'] = itc_T
+
+    if write_spectral_files:
+        scalar_df['itc_w'] = itc_w / 100.
 
     # ITC flagging (Mauder et al. AFM 2013)
     itc_flag = 0
@@ -617,7 +685,7 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
         else:
             df[f'{tt}_prime'] = df[f'{tt}_f'] - df[f'{tt}_f'].mean()
         if df[f'{tt}_prime'].isna().any():
-            print(f'NaN in {TT} detected',
+            print(f'        NaN in {TT} detected',
                   df[f'{tt}_prime'].loc[df[f'{tt}_prime'].isna()])
             continue
 
@@ -646,7 +714,7 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
             w_prime = w_prime[:-lag_abs]
 
         # calculate spectrum for c and cospectrum for wc
-        if plot_cospectrum:
+        if write_spectral_files:
             f = np.arange(0, np.ceil(nsoll / 2) + 1) / file_length
             spec_c, spec_c_scaled, _ = cospectrum(
                 cfg, c_prime, c_prime, f, ws_mean, spectrum_type='spec',
@@ -655,10 +723,17 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
                 cfg, w_prime, c_prime, f, ws_mean, spectrum_type='cospec',
                 plot=plot_spectrum, tag=f"wc_{TT}")
 
+            spectral_df[f'spec_{tt}_scaled'] = spec_c_scaled
+            spectral_df[f'cospec_wc_{tt}_scaled'] = cospec_wc_scaled
+
         # steady state test for wc according to Foken and Wichura 1996
         steady_state_wc_FW96 = test_steady_state_FW96(w_prime, c_prime) * 100.
 
         odf[f'steady_state_wc_{tt}_FokenWichura1996 (%)'] = steady_state_wc_FW96
+
+        if write_spectral_files:
+            steady_state_wc_M98 = test_steady_state_M98(w_prime, c_prime)
+            scalar_df[f'steady_state_wc_{tt}_Mahrt1998'] = steady_state_wc_M98
 
         # steady-state flagging (Mauder et al. AFM 2013)
         odf[f'F_{tt}_qc'] = 0
@@ -706,6 +781,9 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
         odf[f'F_{tt}_random_error_noise ({mol} m-2 s-1)'] = (
             random_error_noise / Vd)
 
+        if write_spectral_files:
+            scalar_df[f'F_{tt}'] = wc / Vd
+
     # interdependencies of flags (Mauder et al. AFM 2013)
     if odf['F_h2o_qc'].iloc[0] == 2:
         odf['H_qc'] = min(odf['H_qc'].iloc[0] + 1, 2)
@@ -713,7 +791,7 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
         odf['F_h2o_qc'] = min(odf['F_h2o_qc'].iloc[0] + 1, 2)
     if (odf['F_h2o_qc'].iloc[0] == 2) or (odf['H_qc'].iloc[0] == 2):
         odf['F_co2_qc'] = min(odf['F_co2_qc'].iloc[0] + 1, 2)
-        
+
     # evapotranspiration and latent heat
     odf['E (kg m-2 s-1)'] = odf['F_h2o (mmol m-2 s-1)'] * 1.e-3 * Mv
     odf['E_qc'] = odf['F_h2o_qc']
@@ -722,5 +800,14 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
 
     # append to output file
     _save_df(odf, output_file)
+
+    if write_spectral_files:
+        sdf['scalar'] = scalar_df
+        sdf['instrument'] = instrument_df
+        sdf['spectral'] = spectral_df
+        output_path = os.path.dirname(output_file)
+        spectral_base = f'{output_path}/spectral/{os.path.basename(ifile)}'
+        spectral_file = f'{spectral_base}-spectral.pkl'
+        pickle.dump(sdf, open(spectral_file, 'wb'))
 
     return
