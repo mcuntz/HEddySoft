@@ -1,0 +1,23 @@
+Time-lag_optimisation_results
+Plausibility_range_[timefolds_standard_deviation]:    1.50
+Beginning_of_timelag_optimization_period: 1997-01-01
+End_of_timelag_optimization_period: 2040-01-01
+
+Number_of_timelags_used_for_co2: 1256
+Median_co2_timelag_[s]:  0.38
+Mimimum_co2_timelag_[s]: -0.09
+Maximum_co2_timelag_[s]:  0.94
+
+H2O_timelag_determinations_as_a_function_of_relative_humidity
+Classes with numerosity < 30 are inferred (see software documentation)
+class     RH-range       med_h2o       min_h2o       max_h2o     class_num
+    1     0 - 10%           0.30         -0.15          2.00             0
+    2     10 - 20%          0.30         -0.15          2.00             0
+    3     20 - 30%          0.30         -0.15          2.00            38
+    4     30 - 40%          0.41         -0.15          2.00           100
+    5     40 - 50%          0.54         -0.15          2.00           165
+    6     50 - 60%          0.71         -0.15          2.00           180
+    7     60 - 70%          0.87         -0.15          2.00           160
+    8     70 - 80%          1.13         -0.15          2.00           143
+    9     80 - 90%          1.39         -0.15          2.00           106
+   10     90 - 100%         1.48         -0.15          2.00            72

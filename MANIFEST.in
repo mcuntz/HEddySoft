@@ -1,0 +1,6 @@
+prune **
+include src/heddysoft/*.py
+graft tests
+
+include AUTHORS.rst CHANGELOG.rst LICENSE README.rst pyproject.toml setup.cfg
+# global-exclude __pycache__ *.py[cod] .* *~
