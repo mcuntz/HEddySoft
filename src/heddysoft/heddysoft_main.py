@@ -32,6 +32,7 @@ from .cospectrum import cospectrum
 from .create_ouput_dataframes import create_ouput_dataframe
 from .create_ouput_dataframes import create_spectral_dictionary
 from .flux_uncertainties import flux_uncertainties
+from .get_files import get_dates_from_files
 from .instrument_problems_tests import instrument_problems_tests
 from .lagged_covariance import cov, lagged_covariance
 from .li7200_diag2df import li7200_diag2df
@@ -564,6 +565,8 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
 
     if write_spectral_files:
         scalar_df['wT'] = wT
+        scalar_df['H'] = rho_cp * wT
+        scalar_df['RH'] = rh_meteo * 100.
 
     # cospectra
     # linear frequency axis for cospectrum
@@ -608,7 +611,7 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
     odf['z/L'] = zoL
 
     if write_spectral_files:
-        scalar_df['z/L'] = np.nan
+        scalar_df['z/L'] = zoL
 
     # potential temperature, theta
     # virtual potential temperature, theta_v
@@ -798,6 +801,9 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
     odf['LE (W m-2)'] = odf['E (kg m-2 s-1)'] * odf['lambda (J kg-1)']
     odf['LE_qc'] = odf['F_h2o_qc']
 
+    if write_spectral_files:
+        scalar_df['LE'] = odf['LE (W m-2)']
+
     # append to output file
     _save_df(odf, output_file)
 
@@ -806,8 +812,11 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
         sdf['instrument'] = instrument_df
         sdf['spectral'] = spectral_df
         output_path = os.path.dirname(output_file)
-        spectral_base = f'{output_path}/spectral/{os.path.basename(ifile)}'
-        spectral_file = f'{spectral_base}-spectral.pkl'
+        spectral_base = f'{output_path}/spectral/spectral'
+        file_date_format = cfg.get('sonic', 'file_date_format')
+        idate = get_dates_from_files(os.path.basename(ifile),
+                                     file_date_format)[0]
+        spectral_file = f'{spectral_base}_{idate.strftime("%Y%m%d%H%M%S")}.pkl'
         pickle.dump(sdf, open(spectral_file, 'wb'))
 
     return

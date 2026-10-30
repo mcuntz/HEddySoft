@@ -24,7 +24,6 @@ History
 
 """
 import glob
-import os
 import re
 import pandas as pd
 from .config import get_config_base_dir, read_config

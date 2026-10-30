@@ -123,8 +123,8 @@ def heddysoft(config, dotimelag=False):
     # spectral output path
     write_spectral_files = cfg.get('param', 'write_spectral_files')
     if write_spectral_files:
-            spectral_path = f'{output_path}/spectral'
-            os.makedirs(output_path, exist_ok=True)
+        spectral_path = f'{output_path}/spectral'
+        os.makedirs(spectral_path, exist_ok=True)
 
     # output path if any plotting True
     idoplot = False

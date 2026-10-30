@@ -157,6 +157,9 @@ def create_spectral_dictionary(indx, file_length, num_freq_bins):
     idf['steady_state_wc_h2o_Mahrt1998'] = np.nan
     idf['F_co2'] = np.nan
     idf['F_h2o'] = np.nan
+    idf['H'] = np.nan
+    idf['LE'] = np.nan
+    idf['RH'] = np.nan
 
     # len 12 variables
     pdf = pd.DataFrame()

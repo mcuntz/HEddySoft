@@ -9,6 +9,7 @@ History
     * Written Matthias Cuntz, Oct 2026 from run_eddypro.py
 
 '''
+import datetime
 import glob
 import os
 import shutil
@@ -40,8 +41,8 @@ if __name__ == '__main__':
     #          End: 2022-04-08 23:30:00
     # NT - Start SLT: 2012-04-23 18:00:00
     # NT - Start Smartflux: 2019-07-22 08:30:00
-    startdate = '2022-06-01 18:00:00'  # first day and time
-    enddate   = '2022-06-05 18:30:00'  # last day and time (not included)
+    startdate = '2022-07-01 00:00:00'  # first day and time
+    enddate   = '2022-07-10 00:00:00'  # last day and time (not included)
 
     # produce timelag files only
     dotimelag = False
@@ -83,7 +84,7 @@ if __name__ == '__main__':
     disk = '/Volumes/nancy-eef-prnas/Sites_ateliers'
     rawdir = f'{disk}/BD_Hesse/Donnees_brutes'
     calcdir = '/Users/cuntz/prog/github/HEddySoft/examples/FR-Hes'
-    dotest = False
+    dotest = True
     # test @ Matthias
 
     # Input files
@@ -313,6 +314,8 @@ if __name__ == '__main__':
             if os.path.exists(inputdir):
                 shutil.rmtree(inputdir, ignore_errors=True)
             os.makedirs(inputdir)
+            copy_start_time = datetime.datetime.now()
+            copy_start_time2 = ptime.time()
             for yy in range(isdate.year, iedate.year + 1):
                 if issmart:
                     if yy >= 2024:
@@ -352,6 +355,11 @@ if __name__ == '__main__':
                         if not os.path.exists(dname):
                             # os.symlink(ff, dname)
                             shutil.copy2(ff, dname)
+            copy_end_time = datetime.datetime.now()
+            copy_end_time2 = ptime.time()
+            print(f'    time:  {copy_end_time - copy_start_time}')
+            print(f'    time2: {copy_end_time2 - copy_start_time2}')
+
 
         # ----------------------------------------------------------
         # Write HEddySoft config file for this period
