@@ -26,7 +26,7 @@ History
 import datetime
 from functools import partial
 import os
-# import sys
+import pickle
 import multiprocessing as mp
 import numpy as np
 from joblib import Parallel, delayed
@@ -42,10 +42,39 @@ from .heddysoft_timelag import heddysoft_timelag
 __all__ = ['heddysoft']
 
 
+def _append(odf, df, df_col, ocol, idf):
+    """
+    Append spectral DataFrame to output DataFrame
+
+    Parameters
+    ----------
+    odf : pandas.DataFrame
+        DataFrame to append to
+    df : pandas.DataFrame
+        DataFrame from which column df_col will be extracted
+    df_col : str
+        Column of df
+    ocol : list of str
+        Output column names
+    idf : pandas.DataFrame
+        DataFrame for index
+
+    Returns
+    -------
+    None
+
+    """
+    iodf = pd.DataFrame([df[df_col].to_numpy()],
+                        columns=ocol, index=idf.index)
+    iodf.index.name = idf.index.name
+
+    return pd.concat([odf, iodf])
+
+
 def heddysoft(config, dotimelag=False):
     """
     Start HEddySoft
-    
+
     Parameters
     ----------
     config : str or astConfigParser
@@ -61,7 +90,10 @@ def heddysoft(config, dotimelag=False):
     # get ini information
     cfg = read_config(config)
 
-    # checks
+    #
+    # Checks
+    #
+
     # only ghg implemented yet
     ftype = cfg.get('sonic', 'file_type')
     if not ((ftype.lower() == 'ghg') or ftype.lower().startswith('slt')):
@@ -74,6 +106,10 @@ def heddysoft(config, dotimelag=False):
         raise ValueError(f'Currently, sonic and irga files have to be'
                          f' the same. Do not give "dir" in section "irga".'
                          f' Currently given: {idir}')
+
+    #
+    # Get files and prepare output
+    #
 
     # get sonic files
     allfiles = get_files(cfg, 'sonic')
@@ -93,7 +129,7 @@ def heddysoft(config, dotimelag=False):
     if end_date:
         edate = pd.to_datetime(end_date, format='ISO8601')
     else:
-        edate = alldates[-1]    
+        edate = alldates[-1]
     files = [ allfiles[ii] for ii, dd in enumerate(alldates)
               if (dd >= sdate) and (dd <= edate) ]
 
@@ -120,12 +156,6 @@ def heddysoft(config, dotimelag=False):
                    f'_{sdate.strftime("%Y%m%d%H%M%S")}'
                    f'-{edate.strftime("%Y%m%d%H%M%S")}{output_end}')
 
-    # spectral output path
-    write_spectral_files = cfg.get('param', 'write_spectral_files')
-    if write_spectral_files:
-        spectral_path = f'{output_path}/spectral'
-        os.makedirs(spectral_path, exist_ok=True)
-
     # output path if any plotting True
     idoplot = False
     for key in cfg['plot']:
@@ -138,6 +168,10 @@ def heddysoft(config, dotimelag=False):
         if not (ppath.startswith('/') or (ppath[1] == ':')):
             ppath = f'{base_dir}/{ppath}'
         os.makedirs(ppath, exist_ok=True)
+
+    #
+    # Read ancillary files
+    #
 
     # read meteo file
     df_meteo = read_meteo(cfg)
@@ -166,7 +200,10 @@ def heddysoft(config, dotimelag=False):
     else:
         rotation_matrix = None
 
-    # Process the files
+    #
+    # Process files
+    #
+
     start_time = datetime.datetime.now()
     print(f'\n  Start processing at'
           f' {start_time.strftime("%Y-%m-%d %H:%M:%S")}')
@@ -188,13 +225,19 @@ def heddysoft(config, dotimelag=False):
             party(ff)
         print(f'\n  Processed {len(filenames)} files.')
     calc_end_time = datetime.datetime.now()
-    print(f'    time: {calc_end_time - start_time}')
+    print(f'      time: {calc_end_time - start_time}')
+
+    #
+    # Postprocess
+    #
 
     # Sort output file
-    print(f'\n  Read, sort, rewrite {output_file}')
+    print('\n  Read, sort, rewrite')
+    print(f'      {output_file}')
     sort_start_time = datetime.datetime.now()
     df = pd.read_csv(output_file, sep=',', index_col=0,
-                     parse_dates=True, date_format='ISO8601')
+                     parse_dates=True, date_format='ISO8601',
+                     on_bad_lines='warn')
     df.sort_index(inplace=True)
     df.index.name = 'TIMESTAMP_START'
 
@@ -205,10 +248,88 @@ def heddysoft(config, dotimelag=False):
     df = df.resample(f'{file_length}s').asfreq(np.nan)
 
     df.to_csv(output_file, na_rep=-9999)
-    sort_end_time = datetime.datetime.now()
-    print(f'    time: {sort_end_time - sort_start_time}')
 
-    # Finish
+    # Sort spectral files
+    write_spectral_files = cfg.get('param', 'write_spectral_files')
+    if write_spectral_files:
+        spectral_file = (f'{output_path}/{output_base}'
+                         f'_{sdate.strftime("%Y%m%d%H%M%S")}'
+                         f'-{edate.strftime("%Y%m%d%H%M%S")}-spectral.pkl')
+        print(f'      {spectral_file}')
+        sfiles = get_files(cfg, 'spectral')
+        sdates = get_dates_from_files(sfiles, '%Y%m%d%H%M%S')
+        sfiles = [ sfiles[ii] for ii, dd in enumerate(sdates)
+                   if (dd >= sdate) and (dd <= edate) ]
+
+        sdf = pd.DataFrame()
+        ipt_w = pd.DataFrame()
+        ipt_co2 = pd.DataFrame()
+        ipt_h2o = pd.DataFrame()
+        freq = pd.DataFrame()
+        icon = pd.DataFrame()
+        rcon_co2 = pd.DataFrame()
+        rcon_h2o = pd.DataFrame()
+        rcon_wc_co2 = pd.DataFrame()
+        rcon_wc_h2o = pd.DataFrame()
+        for ff in sfiles:
+            ldf = pickle.load(open(ff, 'rb'))
+
+            # ['TIMESTAMP_END', 'wT', 'wind_speed', 'wind_direction', ...]
+            scalar_df = ldf['scalar']
+            sdf = pd.concat([sdf, scalar_df])
+
+            # ipt_w, ipt_co2, ipt_h2o - 12 columns
+            instrument_df = ldf['instrument']
+            icol = range(12)
+
+            ipt_w = _append(ipt_w, instrument_df, 'ipt_w', icol, scalar_df)
+            ipt_co2 = _append(ipt_co2, instrument_df, 'ipt_co2', icol, scalar_df)
+            ipt_h2o = _append(ipt_h2o, instrument_df, 'ipt_h2o', icol, scalar_df)
+
+            # freq, cospec_wT_scaled, spec_co2_scaled, cospec_wc_co2_scaled,
+            # spec_h2o_scaled, cospec_wc_h2o_scaled - 50 columns
+            spectral_df = ldf['spectral']
+            icol = spectral_df['freq'].values
+
+            freq = _append(freq, spectral_df, 'freq', icol, scalar_df)
+            icon = _append(icon, spectral_df, 'cospec_wT_scaled', icol, scalar_df)
+            rcon_co2 = _append(rcon_co2, spectral_df, 'spec_co2_scaled',
+                               icol, scalar_df)
+            rcon_h2o = _append(rcon_h2o, spectral_df, 'spec_h2o_scaled',
+                               icol, scalar_df)
+            rcon_wc_co2 = _append(rcon_wc_co2, spectral_df, 'cospec_wc_co2_scaled',
+                                  icol, scalar_df)
+            rcon_wc_h2o = _append(rcon_wc_h2o, spectral_df, 'cospec_wc_h2o_scaled',
+                                  icol, scalar_df)
+
+        sdf.sort_index(inplace=True)
+        ipt_w.sort_index(inplace=True)
+        ipt_co2.sort_index(inplace=True)
+        ipt_h2o.sort_index(inplace=True)
+        freq.sort_index(inplace=True)
+        icon.sort_index(inplace=True)
+        rcon_co2.sort_index(inplace=True)
+        rcon_h2o.sort_index(inplace=True)
+        rcon_wc_co2.sort_index(inplace=True)
+        rcon_wc_h2o.sort_index(inplace=True)
+
+        sout = {'scalar': sdf,
+                'ipt_w': ipt_w, 'ipt_co2': ipt_co2, 'ipt_h2o': ipt_h2o,
+                'freq': freq,
+                'cospec_wT': icon, 'spec_co2': rcon_co2, 'spec_h2o': rcon_h2o,
+                'cospec_wc_co2': rcon_wc_co2, 'cospec_wc_h2o': rcon_wc_h2o}
+        pickle.dump(sout, open(spectral_file, 'wb'))
+
+        for ff in sfiles:
+            os.remove(ff)
+
+    sort_end_time = datetime.datetime.now()
+    print(f'      time: {sort_end_time - sort_start_time}')
+
+    #
+    # Finished
+    #
+
     end_time = datetime.datetime.now()
     print(f'\nFinished at {end_time.strftime("%Y-%m-%d %H:%M:%S")}'
           f' taking time {end_time - start_time}')
