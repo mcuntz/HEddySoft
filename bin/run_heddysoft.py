@@ -360,6 +360,11 @@ if __name__ == '__main__':
             print(f'    time:  {copy_end_time - copy_start_time}')
             print(f'    time2: {copy_end_time2 - copy_start_time2}')
 
+        # Remove old output file
+        ofile = (f'FR-Hes_output_{isdate.strftime("%Y%m%d%H%M%S")}-'
+                 f'{iedate.strftime("%Y%m%d%H%M%S")}.csv')
+        if os.path.exists(ofile):
+            os.remove(ofile)
 
         # ----------------------------------------------------------
         # Write HEddySoft config file for this period
