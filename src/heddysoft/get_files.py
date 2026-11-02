@@ -20,7 +20,7 @@ The following functions are provided:
 History
    * Written, Sep 2026, Matthias Cuntz
    * Bug: directories starting with / are not prepended with basedir,
-     Oct 2026, Matthias Cunt
+     Oct 2026, Matthias Cuntz
 
 """
 import glob
@@ -41,7 +41,7 @@ def get_files(config, ftype):
     config : str or astConfigParser
         Config (filename)
     ftype : str
-        File type 'sonic', 'irga', 'meteo', 'timelag', 'rotation'
+        File type 'sonic', 'irga', 'meteo', 'timelag', 'rotation', 'spectral'
 
     Returns
     -------
@@ -53,12 +53,17 @@ def get_files(config, ftype):
     base_dir = get_config_base_dir(cfg)
 
     ltype = ftype.lower()
-    if ltype not in ['sonic', 'irga', 'meteo', 'timelag', 'rotation']:
+    if ltype not in ['sonic', 'irga', 'meteo', 'timelag', 'rotation', 'spectral']:
         raise ValueError(f'ftype not known: {ftype}')
 
-    section = ltype
-    idirs = cfg.get(section, 'dir')
-    ifile = cfg.get(section, 'files')
+    if ltype == 'spectral':
+        section = ltype
+        idirs = cfg.get('files', 'output_dir')
+        ifile = f'{idirs}/spectral_*.pkl'
+    else:
+        section = ltype
+        idirs = cfg.get(section, 'dir')
+        ifile = cfg.get(section, 'files')
     
     if isinstance(idirs, str):
         idirs = [idirs]
@@ -79,6 +84,8 @@ def get_files(config, ftype):
 
     # remove '' entries
     ofiles = [ oo for oo in ofiles if oo ]
+
+    ofiles.sort()
 
     return ofiles
 
