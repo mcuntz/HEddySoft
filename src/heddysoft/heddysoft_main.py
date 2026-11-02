@@ -72,7 +72,8 @@ def _save_df(df, ofile):
         header = False
     else:
         header = True
-    df.to_csv(ofile, na_rep=-9999, mode='a', header=header)
+    df.to_csv(ofile, na_rep=-9999, mode='a', header=header,
+              date_format='%Y-%m-%d %H:%M:%S')
 
     return
 
@@ -183,7 +184,7 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
         df['H2O_dry'] = df[h2o_name]
 
     #
-    # Plausibility limits
+    # Plausibility limits (also done in instrument_problems_tests)
     #
 
     dlim = {'u': cfg.get('sonic', 'u_lim'),
@@ -203,7 +204,7 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
 
         ldf, ii = check_limits(df[Tname].to_numpy(), dlim[Tname])
         df[Tname] = ldf
-        odf[f'num_limits_{ss} (#)'] = ii.size
+        odf[f'num_limits_{tt} (#)'] = ii.size
 
     #
     # 1st check that enough data to catch faulty files
@@ -333,10 +334,9 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
         plot_problems_tests = (plot_base if plot_instrument_problems_tests
                                else '')
         ipt_w = instrument_problems_tests(
-            df['w'].to_numpy(), False, sampling_rate, plot_problems_tests, 'w')
+            df['w'].values, cfg, plot_problems_tests, 'w')
         ipt_ts = instrument_problems_tests(
-            df['ts'].to_numpy(), detrend_T, sampling_rate,
-            plot_problems_tests, 'ts')
+            df['ts'].values, cfg, plot_problems_tests, 'ts')
 
         instrument_df['ipt_w'] = ipt_w
 
@@ -346,8 +346,7 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
 
             # tests on instrument malfunctions from Vitale et al. (2020)
             ipt = instrument_problems_tests(
-                df[Tname].to_numpy(), detrend_irga, sampling_rate,
-                plot_problems_tests, TT)
+                df[Tname].values, cfg, plot_problems_tests, TT)
 
         instrument_df[f'ipt_{tt}'] = ipt
 
@@ -812,7 +811,7 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
         sdf['instrument'] = instrument_df
         sdf['spectral'] = spectral_df
         output_path = os.path.dirname(output_file)
-        spectral_base = f'{output_path}/spectral/spectral'
+        spectral_base = f'{output_path}/spectral'
         file_date_format = cfg.get('sonic', 'file_date_format')
         idate = get_dates_from_files(os.path.basename(ifile),
                                      file_date_format)[0]
