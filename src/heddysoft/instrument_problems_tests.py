@@ -22,6 +22,9 @@ History
    * Written, 2025, Bernard Heinesch
    * Renamed to instrument_problems_tests, Sep 2026, Matthias Cuntz
    * Lowercase u, v, w; T_SONIC -> T, Sep 2026, Matthias Cuntz
+   * T -> ts or T, Nov 2026, Matthias Cuntz
+   * Pass config, Nov 2026, Matthias Cuntz
+   * Use check_limits, Nov 2026, Matthias Cuntz
 
 """
 from diptest import diptest
@@ -31,14 +34,15 @@ from scipy.stats import kurtosis
 from scipy.stats import skew as skewness
 from statsmodels.tsa.stattools import acf
 from statsmodels.robust.scale import qn_scale
+from .check_limits import check_limits
+from .config import read_config
 from .nanfunctions import nandetrend
 
 
 __all__ = ['instrument_problems_tests']
 
 
-def instrument_problems_tests(x, detrend=False,
-                              hz=20, plot='', var_name='w'):
+def instrument_problems_tests(x, config, plot='', var_name=''):
     """
     Detection of instrumental malfunctions and errors in eddy covariance
     systems after Vitale et al. (2020)
@@ -52,19 +56,15 @@ def instrument_problems_tests(x, detrend=False,
     ----------
     x : array_like
         raw high frequency eddy covariance time series.
-    detrend : logical, optional.
-        If True, a linear trend is removed from data (see details).
-    hz : integer, optional
-        The data acquisition frequency (i.e. 10 or 20 Hz (default)).
+    config : str or astConfigParser
+        Config (filename)
     plot : str, optional
         If not empty, a graphical representation of the results is provided
         with the filename starting with plot
     var_name : str, optional
-        Variable name that must be specified to
-            1. choose the limits for the OOR test; implemented only for
-              ("u", "v", "w", "T")
-            2. enrich the graphical output if plot
-               (e.g. "u", "v", "w", "T", "CO2", "H2O")
+        Variable name that must be specified to u, v, w, ts, CO2, H2O
+            1. choose the limits for the OOR test;
+            2. enrich the graphical output if plot.
 
     Returns
     -------
@@ -97,13 +97,26 @@ def instrument_problems_tests(x, detrend=False,
       hard-coded (30'). Be careful if using different averaging times
 
     """
-    nl = 36000 if len(x) > 20000 else 18000
+    cfg = read_config(config)
+
+    if var_name in {'ts', 'T'}:
+        detrend = cfg.get('param', 'detrend_temperature_signal')
+    elif var_name in {'CO2', 'CO2_dry', 'H2O', 'H2O_dry'}:
+        detrend = cfg.get('param', 'detrend_irga_signal')
+    else:
+        detrend = False
+
+    hz = cfg.get('sonic', 'sampling_rate')
+    file_length = cfg.get('sonic', 'file_length')
+    nl = hz * file_length
+    nx = len(x)
 
     # compute statistics
     if not detrend:
         flucts = x - np.nanmean(x)
     else:
-        nans, xx = np.isnan(x), lambda z: z.nonzero()[0]
+        nans = np.isnan(x)
+        xx = lambda z: z.nonzero()[0]
         x[nans] = np.interp(xx(nans), xx(~nans), x[~nans])
         flucts = nandetrend(x)
 
@@ -143,37 +156,47 @@ def instrument_problems_tests(x, detrend=False,
     DIP = pval if has_variation else np.nan
 
     # Out of range test (with limits hard-coded, in ms-1 and °C)
-    if var_name in {'u', 'v', 'w', 'T'}:
-        min_val = {'u': [-30], 'v': [-30], 'w': [-10], 'T': [-50],
-                   'CO2': [300], 'H2O': [0]}
-        max_val = {'u': [30], 'v': [30], 'w': [10], 'T': [50],
-                   'CO2': [1000], 'H2O': [30]}
-        OOR = ( np.sum((x < min_val[var_name]) |
-                       (x > max_val[var_name])) ) / len(x) * 100
+    #
+    # Plausibility limits
+    #
+    if var_name in {'u', 'v', 'w'}:
+        lim = cfg.get('sonic', f'{var_name}_lim')
+    elif var_name in {'ts', 'T'}:
+        lim = cfg.get('sonic', 'ts_lim')
+    elif var_name in {'CO2', 'CO2_dry'}:
+        lim = cfg.get('irga', 'co2_lim')
+    elif var_name in {'H2O', 'H2O_dry'}:
+        lim = cfg.get('irga', 'h2o_lim')
     else:
+        lim = None
+
+    if lim is None:
         OOR = np.nan
+    else:
+        ldf, ii = check_limits(x, lim)
+        OOR = ii.size / nx * 100.
 
     # plot results if requested
     if plot:
         # treshold definitions (based on the RFlux vignette)
-        # be careful taht for DIP test, the severe threshold is sometimes set to 0.05
+        # be careful that for DIP test, the severe threshold is sometimes set to 0.05
         # and sometimes grounded (like in the L2 levels of the Carbon Portal!)
         mod_thr = [np.nan, np.nan, np.nan, 30, 2, 0.5, 2, 0.5,
                    0.75, hz * 150, 0.1]
         sev_thr = [np.nan, np.nan, np.nan, 50, 4, 1, 4, 1, 0.5,
                    hz * 300, 0.1]
 
-        if (var_name == 'u' or var_name == 'v' or var_name == 'w'):
+        if ((var_name == 'u') or (var_name == 'v') or (var_name == 'w')):
             lab = var_name + '\n(ms-1)'
-        elif (var_name == 'T'):
+        elif ((var_name == 'T') or (var_name == 'ts')):
             lab = var_name + '\n(K)'
-        elif (var_name == 'CO2'):
+        elif ((var_name == 'CO2') or (var_name == 'CO2_dry')):
             lab = var_name + '\n(\u03BCmol/mol)'
-        elif (var_name == 'H2O'):
+        elif ((var_name == 'H2O') or (var_name == 'H2O_dry')):
             lab = var_name + '\n(mmol/mol)'
-        elif (var_name == 'c or h'):
+        elif var_name == 'c or h':
             lab = var_name + '\n(\u03BCmol/mol or (mmol/mol))'
-        elif (var_name == 'tracer'):
+        elif var_name == 'tracer':
             lab = var_name + '\n(mmol/mol)'
 
         fig, ax = plt.subplots(4, 2, figsize=(8, 6),
