@@ -21,7 +21,7 @@ The following functions are provided:
 History
    * Written, 2025, Bernard Heinesch
    * Merged nanlinfit and nandetrand, Sep 2026, Matthias Cuntz
-   * ToDo: t of nanlinfit consider; isnan.any
+   * Preserve x-values when fitting line, Nov 2026, Matthias Cuntz
 
 """
 import numpy as np
@@ -47,9 +47,10 @@ def nanlinfit(y):
         slope and offset of linear fit
 
     """
-    y = np.delete(y, np.where(np.isnan(y)))
-    #MC: should be done before and indexed as y
     t = np.transpose(np.arange(0, len(y)))
+    ii = np.where(np.isfinite(y))[0]
+    y = y[ii]
+    t = t[ii]
     
     coeff = np.polyfit(t, y, 1)
 
