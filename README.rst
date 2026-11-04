@@ -9,11 +9,12 @@ About HEddySoft
 This package calculates eddy covariance fluxes following Mauder et
 al. (2013, `10.1016/j.agrformet.2012.09.006_`). It uses routines from
 the package GEddySoft_ (Dumont et al. 2026,
-`10.5194/essd-18-617-2026`_) of Bernard Heinesch, and got some details
-from EddyPro_ (LI-COR Biosciences 2021) and EddySoft_ (Kolle and
-Rebmann 2007). GEddySoft_ was initially inspired by InnFLUX_ from
-Striednig et al. (2020, `10.5194/amt-13-1447-2020`_), translated and
-enhanced by Bernard Heinesch.
+`10.5194/essd-18-617-2026`_, v4.1 downloaded 14 August 2026) of
+Bernard Heinesch, and got some details from EddyPro_ (LI-COR
+Biosciences 2021) and EddySoft_ (Kolle and Rebmann 2007). GEddySoft_
+was initially inspired by InnFLUX_ from Striednig et al. (2020,
+`10.5194/amt-13-1447-2020`_), translated and enhanced by Bernard
+Heinesch.
 
 ``HEddySoft`` focuses on conventional eddy covariance fluxes of
 energy, water and carbon dioxide. It also follows the so-called TERENO
