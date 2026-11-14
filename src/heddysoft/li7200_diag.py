@@ -15,38 +15,18 @@ l'Alimentation et l'Environnement (INRAE), Nancy, France.
 The following functions are provided:
 
 .. autosummary::
-   li7200_diag2df
+   li7200_diag
 
 History
    * Written, 2025, Bernard Heinesch
-   * Rename to li7200_diag2df, Sep 2026, Matthias Cuntz
+   * Rename to li7200_diag, Sep 2026, Matthias Cuntz
 
 """
 import numpy as np
 import pandas as pd
 
 
-__all__ = ['li7200_diag2df']
-
-
-# def _int_to_binary_vectorized(arr):
-#     """
-#     Integer to binary conversion
-    
-#     Parameters
-#     ----------
-#     arr : array_like
-#         Integer values
-
-#     Returns
-#     -------
-#     ndarray
-#         binary representation of arr
-
-#     """    
-#     int2binary = np.vectorize(lambda x: '000' + format(x, 'b'))
-
-#     return int2binary(arr)
+__all__ = ['li7200_diag']
 
 
 def _split_bin_diag_vectorized(diag_val):
@@ -105,7 +85,7 @@ def _split_bin_diag_vectorized(diag_val):
     return diag_count
 
 
-def li7200_diag2df(data):
+def li7200_diag(data):
     """
     Read diagnostic value and translate them to DataFrame
     with individual flag columns for each instrument part
@@ -127,7 +107,6 @@ def li7200_diag2df(data):
     diag_val = data.astype(int)
 
     # integer to binary conversion
-    # diag_val = _int_to_binary_vectorized(diag_val)
     int2binary = np.vectorize(lambda x: format(x, '016b'))
     diag_val = int2binary(diag_val)
     

@@ -27,7 +27,7 @@ from .air import esat
 from .config import read_config, get_config_base_dir
 from .create_ouput_dataframes import create_timelag_dataframe
 from .lagged_covariance import cov, lagged_covariance
-from .li7200_diag2df import li7200_diag2df
+from .li7200_diag import li7200_diag
 from .nanfunctions import nandetrend
 from .read_files import read_raw_datafile
 from .spike_detection import spike_detection_vickers_mahrt_1997
@@ -102,7 +102,7 @@ def heddysoft_timelag(config, df_meteo, output_file, ifile,
         findx = irga_names.index('irga_flag')
         _ = irga_names_wo_flag.pop(findx)
         _ = irga_columns_wo_flag.pop(findx)
-        diag_count = li7200_diag2df(df['irga_flag'])
+        diag_count = li7200_diag(df['irga_flag'])
         if (diag_count.drop(
                 columns=['AGC', 'Sync', 'Aux_input']) != 0).any(
                     axis=1).any():

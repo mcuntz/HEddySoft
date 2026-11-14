@@ -35,7 +35,7 @@ from .flux_uncertainties import flux_uncertainties
 from .get_files import get_dates_from_files
 from .instrument_problems_tests import instrument_problems_tests
 from .lagged_covariance import cov, lagged_covariance
-from .li7200_diag2df import li7200_diag2df
+from .li7200_diag import li7200_diag
 from .log_bin_spectrum import log_bin_spectrum
 from .nanfunctions import nandetrend
 from .read_files import read_raw_datafile
@@ -152,7 +152,7 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
         findx = irga_names.index('irga_flag')
         _ = irga_names_wo_flag.pop(findx)
         _ = irga_columns_wo_flag.pop(findx)
-        diag_count = li7200_diag2df(df['irga_flag'])
+        diag_count = li7200_diag(df['irga_flag'])
         if (diag_count.drop(
                 columns=['AGC', 'Sync', 'Aux_input']) != 0).any(
                     axis=1).any():

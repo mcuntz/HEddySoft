@@ -25,6 +25,9 @@ History
    * Added and adapted compute_time_lag function as lagged_covariance,
      Sep 2026, Matthias Cuntz
    * Pass filebase to lagged_covariance, Oct 2026, Matthias Cuntz
+   * xcov: lag=0 now uses the full arrays (no dropped sample) and negative
+     lags now trim the wrapped samples correctly. Bug detected by Pedro Coimbra.
+     Nov 2026, Bernard Heinesch
 
 """
 import numpy as np
@@ -100,9 +103,13 @@ def xcov(x, y, lag):
         if ll > 0:
             xs = x[ll:]
             ys = yshifted[ll:]
+        elif ll == 0:
+            xs = x
+            ys = yshifted
         else:
-            xs = x[0:len(x) - 1 - ll]
-            ys = yshifted[0:len(x) - 1 - ll]
+            l_abs = abs(ll)
+            xs = x[:-l_abs]
+            ys = yshifted[:-l_abs]
 
         mask = np.isfinite(xs) & np.isfinite(ys)
         n = int(mask.sum())

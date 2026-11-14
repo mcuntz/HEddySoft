@@ -17,7 +17,7 @@ from .find_covariance_peak import *
 from .flux_uncertainties import *
 from .kaimal_cospectrum import *
 from .lagged_covariance import *
-from .li7200_diag2df import *
+from .li7200_diag import *
 from .log_bin_spectrum import *
 from .nanfunctions import *
 from .read_files import *

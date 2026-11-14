@@ -27,7 +27,6 @@ import datetime
 from functools import partial
 import os
 import pickle
-import multiprocessing as mp
 import numpy as np
 from joblib import Parallel, delayed
 import pandas as pd
@@ -216,10 +215,10 @@ def heddysoft(config, dotimelag=False):
                     timelag_dict=timelag_dict,
                     rotation_matrix=rotation_matrix)
     if cfg.get('param', 'multiprocessing'):
-        Parallel(n_jobs=mp.cpu_count()-2)(delayed(party)(ff)
+        ncpu = max(os.cpu_count() - 2, 1)
+        Parallel(n_jobs=ncpu)(delayed(party)(ff)
                                           for ff in files)
-        print(f'\n  Multiprocessed {len(filenames)} files on'
-              f' {mp.cpu_count()-2} cpus.')
+        print(f'\n  Multiprocessed {len(filenames)} files on {ncpu} CPUs.')
     else:
         for ff in files:
             party(ff)

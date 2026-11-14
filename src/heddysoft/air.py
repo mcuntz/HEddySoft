@@ -119,9 +119,10 @@ def esat(temp):
     """
     Saturated vapour pressure from EddyPro
 
-    This formula gives same results as that in Buck (1996)
-    Buck (1996), Buck Research CR-1A User's Manual, Appendix 1
-        esat = 611.21 * np.exp( (18.678 - T / 234.5) * (T / (257.14 + T)) )
+    This formula gives same results as that in Buck (1996) up
+    to about 30 degree Celcius:
+        Buck (1996), Buck Research CR-1A User's Manual, Appendix 1
+            esat = 611.21 * np.exp( (18.678 - T / 234.5) * (T / (257.14 + T)) )
     where T is in Celsius.
 
     Parameters
