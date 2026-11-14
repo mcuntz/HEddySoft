@@ -27,6 +27,7 @@ History
    * Use check_limits, Nov 2026, Matthias Cuntz
    * Do not calculate tests on based on autocorrelation and data distribution
      if no variation or all NaN, Nov 2026, Matthias Cuntz
+   * Shortcut all tests if all NaN, Nov 2026, Matthias Cuntz
 
 """
 from math import isfinite
@@ -114,6 +115,27 @@ def instrument_problems_tests(x, config, plot='', var_name=''):
     nl = hz * file_length
     nx = len(x)
 
+    # Check if `x` has variation
+    x_min, x_max = np.nanmin(x), np.nanmax(x)
+    if isfinite(x_min) and isfinite(x_max):
+        has_variation = x_min != x_max
+    else:
+        S_VM97 = 9999
+        K_VM97 = 9999
+        KID0 = 9999
+        KID = 9999
+        HF5 = 9999
+        HF10 = 9999
+        HD5 = 9999
+        HD10 = 9999
+        AL1 = 9999
+        DDI = nl
+        DIP = -9999
+        OOR = 9999
+
+        return [S_VM97, K_VM97, KID0, KID, HF5, HF10, HD5, HD10,
+                AL1, DDI, DIP, OOR]
+
     # compute statistics
     if not detrend:
         flucts = x - np.nanmean(x)
@@ -146,13 +168,6 @@ def instrument_problems_tests(x, config, plot='', var_name=''):
     K_VM97 = 3 + kurtosis(detrended_x)
     KID0 = 3 + kurtosis(d0, nan_policy='omit')
     KID = 3 + kurtosis(np.diff(x_r[~np.isnan(x_r)]), nan_policy='omit')
-
-    # Check if `x` has variation
-    x_min, x_max = np.nanmin(x), np.nanmax(x)
-    if isfinite(x_min) and isfinite(x_max):
-        has_variation = x_min != x_max
-    else:
-        has_variation = False
 
     if has_variation:
         AL1 = acf(x, missing='conservative')[1]
@@ -259,7 +274,7 @@ def instrument_problems_tests(x, config, plot='', var_name=''):
         # plot data distribution integrity and Hartigan's Dip tests
         ax[3, 0].hist(x, breaks)
         ax[3, 0].set_ylabel('Frequency')
-        ax[3, 0].set_xlabel(lab)  
+        ax[3, 0].set_xlabel(lab)
 
         ax[3, 1].set_axis_off()
         color = 'red' if DDI > sev_thr[9] else (
