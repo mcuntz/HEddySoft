@@ -26,9 +26,10 @@ History
    * Pass config, Nov 2026, Matthias Cuntz
    * Use check_limits, Nov 2026, Matthias Cuntz
    * Do not calculate tests on based on autocorrelation and data distribution
-     if no variation, Nov 2026, Matthias Cuntz
+     if no variation or all NaN, Nov 2026, Matthias Cuntz
 
 """
+from math import isfinite
 from diptest import diptest
 import matplotlib.pyplot as plt
 import numpy as np
@@ -148,7 +149,10 @@ def instrument_problems_tests(x, config, plot='', var_name=''):
 
     # Check if `x` has variation
     x_min, x_max = np.nanmin(x), np.nanmax(x)
-    has_variation = x_min != x_max
+    if isfinite(x_min) and isfinite(x_max):
+        has_variation = x_min != x_max
+    else:
+        has_variation = False
 
     if has_variation:
         AL1 = acf(x, missing='conservative')[1]
