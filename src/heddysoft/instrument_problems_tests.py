@@ -27,7 +27,8 @@ History
    * Use check_limits, Nov 2026, Matthias Cuntz
    * Do not calculate tests on based on autocorrelation and data distribution
      if no variation or all NaN, Nov 2026, Matthias Cuntz
-   * Shortcut all tests if all NaN, Nov 2026, Matthias Cuntz
+   * Shortcut all tests if less than 1000 finite values,
+     Nov 2026, Matthias Cuntz
 
 """
 from math import isfinite
@@ -117,7 +118,7 @@ def instrument_problems_tests(x, config, plot='', var_name=''):
 
     # Check if `x` has variation
     x_min, x_max = np.nanmin(x), np.nanmax(x)
-    if isfinite(x_min) and isfinite(x_max):
+    if isfinite(x_min) and isfinite(x_max) and (np.sum(np.isfinite(x)) > 1000):
         has_variation = x_min != x_max
     else:
         S_VM97 = 9999

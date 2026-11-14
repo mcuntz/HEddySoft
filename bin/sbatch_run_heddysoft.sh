@@ -28,9 +28,9 @@
 #SBATCH --mail-type=END,FAIL,INVALID_DEPEND,STAGE_OUT,TIME_LIMIT,ARRAY_TASKS
 #SBATCH --mail-user=matthias.cuntz@inrae.fr
 
-set -ex
+set -e
 
-env
+# env
 
 eval "$(${HOME}/amdforge3/bin/conda 'shell.bash' 'hook' 2> /dev/null)"
 conda activate pystd

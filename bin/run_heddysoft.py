@@ -42,7 +42,7 @@ if __name__ == '__main__':
     #          End: 2022-04-08 23:30:00
     # NT - Start SLT: 2012-04-23 18:00:00
     # NT - Start Smartflux: 2019-07-22 08:30:00
-    startdate = '2012-04-23 18:00:00'  # first day and time
+    startdate = '2012-11-15 00:00:00'  # first day and time
     enddate   = '2024-01-01 00:00:00'  # last day and time (not included)
 
     # produce timelag files only
