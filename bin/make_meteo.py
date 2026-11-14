@@ -36,6 +36,7 @@ History
      Jul 2023, Matthias Cuntz
    * Change for HEddySoft, Oct 2026, Matthias Cuntz
    * gzip output files, Oct 2026, Matthias Cuntz
+   * Remove inplace=True in pandas methods, Nov 2026, Matthias Cuntz
 
 """
 import time as ptime
@@ -361,7 +362,7 @@ if __name__ == '__main__':
 
         # undef -> NaN
         if undef is not None:
-            df.replace(undef, np.nan, inplace=True)
+            df = df.replace(undef, np.nan)
 
         # Remove manually flagged data
         df = apply_manual_flags(df, manualfile, verbose=False)
@@ -392,7 +393,7 @@ if __name__ == '__main__':
         df = df[list(mvar.keys())]
 
         # sort times
-        df.sort_index(inplace=True)
+        df = df.sort_index()
 
         # Add column if variable is missing
         if len(df.columns) != 6:
@@ -412,7 +413,7 @@ if __name__ == '__main__':
         # Change names and units
         head = [ f'{nameout[mvar[ii]]} ({unitout[mvar[ii]]})'
                  for ii in df.columns ]
-        df.rename(columns=dict(zip(df.columns, head)), inplace=True)
+        df = df.rename(columns=dict(zip(df.columns, head)))
         # degC -> K
         df[f"{nameout['TA']} ({unitout['TA']})"] += 273.15
         # kPa -> Pa
@@ -427,8 +428,7 @@ if __name__ == '__main__':
         df = df.resample('30min').asfreq(np.nan)
 
         # # interpolate small gaps < 3 hours
-        # df.interpolate(method='linear', limit=5, limit_area='inside',
-        #                inplace=True)
+        # df = df.interpolate(method='linear', limit=5, limit_area='inside')
 
         # Shift dates: eddy system was at GMT until 05.01.2016
         # Annual meteo files are already at GMT+1 while eddy files

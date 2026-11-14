@@ -6,6 +6,7 @@ History
 -------
    * Written 2025 by Matthias Cuntz
      Routines: apply_manual_flags
+   * Remove inplace=True in pandas methods, Nov 2026, Matthias Cuntz
 
 '''
 import datetime as dt
@@ -45,7 +46,7 @@ def apply_manual_flags(idf, mfile, verbose=False):
 
     # apply up to tofay if no date given for example in 'end'
     today = dt.datetime.today()
-    dfm.fillna(today, inplace=True)
+    dfm = dfm.fillna(today)
 
     mvars = set(dfm['variable'].values)
     for ivar in mvars:

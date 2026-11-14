@@ -22,6 +22,8 @@ Modified
         - pyjams to pandas
     Oct 2026, Matthias Cuntz
         - remove metadata file
+    Nov 2026, Matthias Cuntz
+        - remove inplace=True in pandas methods
 
 '''
 import datetime as dt
@@ -96,7 +98,7 @@ for cc in dfp.columns[:-1]:
 # number stems per ha and canopy height
 df = pd.read_csv(inheightfile)
 df['TIME'] = pd.to_datetime(df['TIME'], format='ISO8601')
-df.set_index('TIME', inplace=True)
+df = df.set_index('TIME')
 
 # interpolate
 oheight = _piecewise_interp(dfp['Apply-Start'], df.index, df['H90'].to_numpy())

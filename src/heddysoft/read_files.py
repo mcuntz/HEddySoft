@@ -29,6 +29,7 @@ The following functions are provided:
 History
    * Written Sep 2026 by Matthias Cuntz, using some code of
      read_metadata_files.py of GEddySoft (read_planar_fit)
+   * Remove inplace=True in pandas methods, Nov 2026, Matthias Cuntz
 
 """
 from collections.abc import Iterable
@@ -123,7 +124,7 @@ def read_csv(ifile, csvargs={}):
             else:
                 iname = df.columns[index_col]
             df[iname] = pd.to_datetime(df[iname], format=date_format)
-            df.set_index(iname, drop=False, inplace=True)
+            df = df.set_index(iname, drop=False)
         dfl.append(df)
 
     # Concat datetime
@@ -133,7 +134,7 @@ def read_csv(ifile, csvargs={}):
         df, df1 = df.align(df1, axis=1)
         df = pd.concat([df, df1], verify_integrity=False)
 
-    df.sort_index(inplace=True)
+    df = df.sort_index()
     df = df[~df.index.duplicated(keep='first')]
 
     return df
@@ -186,7 +187,7 @@ def read_ghg(ifile, config):
                         for a in df_time['Time'] ]
     df_time['datetime'] = pd.to_datetime(df_time['Date'] + 'T' +
                                          df_time['Time'])
-    df_time.drop(columns=['Date', 'Time'], inplace=True)
+    df_time = df_time.drop(columns=['Date', 'Time'])
         
     dfl = [df_time,]
 
@@ -198,7 +199,7 @@ def read_ghg(ifile, config):
             sdict = {}
             for i in range(len(sonic_columns)):
                 sdict.update({cols[i]: sonic_names[i]})
-            df_sonic.rename(columns=sdict, inplace=True)
+            df_sonic = df_sonic.rename(columns=sdict)
 
         dfl.append(df_sonic)
 
@@ -210,7 +211,7 @@ def read_ghg(ifile, config):
             idict = {}
             for i in range(len(irga_columns)):
                 idict.update({cols[i]: irga_names[i]})
-            df_irga.rename(columns=idict, inplace=True)
+            df_irga = df_irga.rename(columns=idict)
 
         dfl.append(df_irga)
 
@@ -219,7 +220,7 @@ def read_ghg(ifile, config):
         df = pd.concat([df, odf], axis=1)
 
     # df['timestamp'] = [ dd.timestamp() for dd in df['datetime'] ]
-    df.set_index('datetime', inplace=True)
+    df = df.set_index('datetime')
 
     return df
 
@@ -258,7 +259,7 @@ def read_meteo(config):
     df = read_csv(files, csvargs=dcsv)
 
     # drop datetime column
-    df.drop(columns=[idate,], inplace=True)
+    df = df.drop(columns=[idate,])
 
     return df
 
@@ -678,7 +679,7 @@ def read_timelag_eddypro(config):
         "h2omed": imed,
         "h2omin": imin,
         "h2omax": imax,})
-    df.set_index('class', inplace=True)
+    df = df.set_index('class')
         
     return co2, df
 
@@ -717,7 +718,7 @@ def read_timelag_file(config):
     df = read_csv(files, csvargs=dcsv)
 
     # drop datetime column
-    df.drop(columns=[idate,], inplace=True)
+    df = df.drop(columns=[idate,])
 
     # timelag
     ilagco2 = cfg.get(section, 'co2_timelag')
@@ -725,8 +726,8 @@ def read_timelag_file(config):
     issecond = cfg.get(section, 'issecond')
     sampling_rate = cfg.get('sonic', 'sampling_rate')
     if issecond:
-        df.rename(columns={ilagco2: 'co2_timelag_seconds',
-                           ilagh2o: 'h2o_timelag_seconds'}, inplace=True)
+        df = df.rename(columns={ilagco2: 'co2_timelag_seconds',
+                                ilagh2o: 'h2o_timelag_seconds'})
         # make sure no NaN, which is not supported by astype(int)
         df['co2_timelag_seconds'] = df['co2_timelag_seconds'].interpolate(
             method='linear')
@@ -737,8 +738,8 @@ def read_timelag_file(config):
         df['h2o_timelag_index'] = (df['h2o_timelag_seconds'] *
                                    sampling_rate).round().astype(int)
     else:
-        df.rename(columns={ilagco2: 'co2_timelag_index',
-                           ilagh2o: 'h2o_timelag_index'}, inplace=True)
+        df = df.rename(columns={ilagco2: 'co2_timelag_index',
+                                ilagh2o: 'h2o_timelag_index'})
         df['co2_timelag_index'] = df['co2_timelag_index'].interpolate(
             method='nearest')
         df['h2o_timelag_index'] = df['h2o_timelag_index'].interpolate(

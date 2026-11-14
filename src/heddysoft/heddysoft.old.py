@@ -178,7 +178,7 @@ def heddysoft(cfgfile):
     sort_start_time = datetime.datetime.now()
     df = pd.read_csv(output_file, sep=',', index_col=0,
                      parse_dates=True, date_format='ISO8601')
-    df.sort_index(inplace=True)
+    df = df.sort_index()
     df.index.name = 'TIMESTAMP_START'
     print(f'  Rewrite {output_file}')
     df.to_csv(output_file, na_rep=-9999)
