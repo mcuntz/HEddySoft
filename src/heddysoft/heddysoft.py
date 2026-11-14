@@ -237,15 +237,30 @@ def heddysoft(config, ncpu=0, dotimelag=False):
     print('\n  Read, sort, rewrite')
     print(f'      {output_file}')
     sort_start_time = datetime.datetime.now()
+
+    # Get rid of multiple headers when multiprocessing
+    with open(output_file, 'r') as ff:
+        df = ff.readlines()
+    for dd in df:
+        if dd.startswith('TIMESTAMP'):
+            head = dd.strip()
+            break
+    df = [ dd.strip() for dd in df if not dd.startswith('TIMESTAMP') ]
+    df.sort()
+    with open(output_file, 'w') as ff:
+        print(head, file=ff)
+        for dd in df:
+            print(dd, file=ff)
+
+    # Further cleaning with pandas
     df = pd.read_csv(output_file, sep=',', index_col=0,
-                     parse_dates=True, date_format='ISO8601',
-                     on_bad_lines='warn')
-    df.sort_index(inplace=True)
+                     parse_dates=True, date_format='ISO8601')
+    df = df.sort_index()
     df.index.name = 'TIMESTAMP_START'
 
     # drop duplicates and fill missing times
     file_length = cfg.get('sonic', 'file_length')
-    # -> do not use df.drop_duplicates(inplace=True)
+    # -> do not use df = df.drop_duplicates()
     df = df[~df.index.duplicated(keep='first')]
     df = df.resample(f'{file_length}s').asfreq(np.nan)
 
@@ -304,16 +319,16 @@ def heddysoft(config, ncpu=0, dotimelag=False):
             rcon_wc_h2o = _append(rcon_wc_h2o, spectral_df, 'cospec_wc_h2o_scaled',
                                   icol, scalar_df)
 
-        sdf.sort_index(inplace=True)
-        ipt_w.sort_index(inplace=True)
-        ipt_co2.sort_index(inplace=True)
-        ipt_h2o.sort_index(inplace=True)
-        freq.sort_index(inplace=True)
-        icon.sort_index(inplace=True)
-        rcon_co2.sort_index(inplace=True)
-        rcon_h2o.sort_index(inplace=True)
-        rcon_wc_co2.sort_index(inplace=True)
-        rcon_wc_h2o.sort_index(inplace=True)
+        sdf = sdf.sort_index()
+        ipt_w = ipt_w.sort_index()
+        ipt_co2 = ipt_co2.sort_index()
+        ipt_h2o = ipt_h2o.sort_index()
+        freq = freq.sort_index()
+        icon = icon.sort_index()
+        rcon_co2 = rcon_co2.sort_index()
+        rcon_h2o = rcon_h2o.sort_index()
+        rcon_wc_co2 = rcon_wc_co2.sort_index()
+        rcon_wc_h2o = rcon_wc_h2o.sort_index()
 
         sout = {'scalar': sdf,
                 'ipt_w': ipt_w, 'ipt_co2': ipt_co2, 'ipt_h2o': ipt_h2o,
