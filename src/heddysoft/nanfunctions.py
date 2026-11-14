@@ -22,6 +22,7 @@ History
    * Written, 2025, Bernard Heinesch
    * Merged nanlinfit and nandetrand, Sep 2026, Matthias Cuntz
    * Preserve x-values when fitting line, Nov 2026, Matthias Cuntz
+   * Return NaN if input is all NaN in nanlinfit, Nov 2026, Matthias Cuntz
 
 """
 import numpy as np
@@ -35,7 +36,7 @@ def nanlinfit(y):
     """
     Calculate linear fit for y assuming equidistant x from 0 to N,
     ignoring NaNs
-    
+
     Parameters
     ----------
     y : 1-D ndarray
@@ -49,13 +50,17 @@ def nanlinfit(y):
     """
     t = np.transpose(np.arange(0, len(y)))
     ii = np.where(np.isfinite(y))[0]
-    y = y[ii]
-    t = t[ii]
-    
-    coeff = np.polyfit(t, y, 1)
+    if ii.size > 0:
+        y = y[ii]
+        t = t[ii]
 
-    slope = coeff[0]
-    offset = coeff[1]
+        coeff = np.polyfit(t, y, 1)
+
+        slope = coeff[0]
+        offset = coeff[1]
+    else:
+        slope = np.nan
+        offset = np.nan
 
     return (slope, offset)
 
@@ -63,7 +68,7 @@ def nanlinfit(y):
 def nandetrend(y):
     """
     Remove linear trend from a vector that may contain NaNs
-    
+
     Parameters
     ----------
     y : 1-D ndarray
