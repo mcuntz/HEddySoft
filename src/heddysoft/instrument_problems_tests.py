@@ -25,6 +25,8 @@ History
    * T -> ts or T, Nov 2026, Matthias Cuntz
    * Pass config, Nov 2026, Matthias Cuntz
    * Use check_limits, Nov 2026, Matthias Cuntz
+   * Do not calculate tests on based on autocorrelation and data distribution
+     if no variation, Nov 2026, Matthias Cuntz
 
 """
 from diptest import diptest
@@ -148,12 +150,16 @@ def instrument_problems_tests(x, config, plot='', var_name=''):
     x_min, x_max = np.nanmin(x), np.nanmax(x)
     has_variation = x_min != x_max
 
-    AL1 = acf(x, missing='conservative')[1] if has_variation else np.nan
-    breaks = np.histogram_bin_edges(x, bins='fd', range=(x_min, x_max))
-    DDI = max(np.histogram(x, bins=breaks)[0]) if has_variation else nl
-
-    dip, pval = diptest(flucts)
-    DIP = pval if has_variation else np.nan
+    if has_variation:
+        AL1 = acf(x, missing='conservative')[1]
+        breaks = np.histogram_bin_edges(x, bins='fd', range=(x_min, x_max))
+        DDI = max(np.histogram(x, bins=breaks)[0])
+        dip, pval = diptest(flucts)
+        DIP = pval
+    else:
+        AL1 = np.nan
+        DDI = nl
+        DIP = np.nan
 
     # Out of range test (with limits hard-coded, in ms-1 and °C)
     #
