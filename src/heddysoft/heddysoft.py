@@ -70,7 +70,7 @@ def _append(odf, df, df_col, ocol, idf):
     return pd.concat([odf, iodf])
 
 
-def heddysoft(config, dotimelag=False):
+def heddysoft(config, ncpu=0, dotimelag=False):
     """
     Start HEddySoft
 
@@ -78,6 +78,8 @@ def heddysoft(config, dotimelag=False):
     ----------
     config : str or astConfigParser
         Config (filename)
+    ncpu : int, optional
+        Number of CPUs to use if multiprocessing (default: max-2)
     dotimelag : bool, optional
         If True, only calculate timelags
 
@@ -215,7 +217,8 @@ def heddysoft(config, dotimelag=False):
                     timelag_dict=timelag_dict,
                     rotation_matrix=rotation_matrix)
     if cfg.get('param', 'multiprocessing'):
-        ncpu = max(os.cpu_count() - 2, 1)
+        if ncpu < 1:
+            ncpu = max(os.cpu_count() - 2, 1)
         Parallel(n_jobs=ncpu)(delayed(party)(ff)
                                           for ff in files)
         print(f'\n  Multiprocessed {len(filenames)} files on {ncpu} CPUs.')

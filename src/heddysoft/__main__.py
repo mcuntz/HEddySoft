@@ -37,6 +37,13 @@ def main():
         formatter_class=argparse.RawTextHelpFormatter,
         description='Run HEddySoft.')
 
+    ncpu = 0
+    
+    hstr = 'Number of CPUs if multiprocessing. Default: os.cpu_count() - 2'
+    parser.add_argument('-c', '--cpu', action='store', type=int,
+                        default=ncpu, dest='ncpu',
+                        metavar='number', help=hstr)
+
     hstr = ('If set, calculate timelags only, otherwise calculate fluxes.')
     parser.add_argument('-t', '--timelag', action='store_true',
                         default=dotimelag, dest='dotimelag',
@@ -47,10 +54,11 @@ def main():
                         help='Config file')
 
     args = parser.parse_args()
+    ncpu = args.ncpu
     dotimelag = args.dotimelag
     cfgfile = args.cfgfile
 
-    heddysoft(cfgfile, dotimelag=dotimelag)
+    heddysoft(cfgfile, ncpu=ncpu, dotimelag=dotimelag)
 
     return
 
