@@ -12,6 +12,7 @@ History
 import datetime
 import glob
 import os
+import platform
 import shutil
 import time as ptime
 import numpy as np
@@ -41,12 +42,15 @@ if __name__ == '__main__':
     #          End: 2022-04-08 23:30:00
     # NT - Start SLT: 2012-04-23 18:00:00
     # NT - Start Smartflux: 2019-07-22 08:30:00
-    startdate = '2022-07-01 00:00:00'  # first day and time
-    enddate   = '2022-07-10 00:00:00'  # last day and time (not included)
+    startdate = '2012-04-23 18:00:00'  # first day and time
+    enddate   = '2024-01-01 00:00:00'  # last day and time (not included)
 
     # produce timelag files only
     dotimelag = False
 
+    # number of processors to use in parallel
+    multiprocess = 6
+    
     # ----------------------------------------------------------
     # Immutable files and directories
     #
@@ -75,17 +79,27 @@ if __name__ == '__main__':
     sdate0348 = pd.to_datetime('2022-11-25 00:00:00', format='ISO8601')
 
     # base directory to which all other directories are relative to
-    disk = 'J:'
-    rawdir = f'{disk}/BD_Hesse/Donnees_brutes'
-    calcdir = f'{disk}/calc_ec'
-    dotest = False  # Do/Do not delete and copy data files
-
-    # test @ Matthias - TimeLagHandle in file src/src_rp/timelag_handle.f90
-    disk = '/Volumes/nancy-eef-prnas/Sites_ateliers'
-    rawdir = f'{disk}/BD_Hesse/Donnees_brutes'
-    calcdir = '/Users/cuntz/prog/github/HEddySoft/examples/FR-Hes'
-    dotest = True
-    # test @ Matthias
+    ios = platform.system()  # Windows, Darwin, Linux
+    if ios == 'Windows':
+        # Windows - Station_Calcul
+        disk = 'J:'
+        rawdir = f'{disk}/BD_Hesse/Donnees_brutes'
+        calcdir = f'{disk}/calc_ec'
+        dotest = False  # Do/Do not delete and copy data files
+    elif ios == 'Darwin':
+        # macOS - Matthias with NAS mounted
+        disk = '/Volumes/nancy-eef-prnas/Sites_ateliers'
+        rawdir = f'{disk}/BD_Hesse/Donnees_brutes'
+        calcdir = '/Users/cuntz/prog/github/HEddySoft/examples/FR-Hes'
+        dotest = False
+    elif ios == 'Linux':
+        # Linux - biocomp
+        disk = '/local-gpu02/pnas/'
+        rawdir = f'{disk}/Donnees_brutes'
+        calcdir = '/home/mcuntz/prog/github/HEddySoft/examples/FR-Hes'
+        dotest = False
+    else:
+        raise ValueError(f'OS not known: {ios}')
 
     # Input files
     # EddyPro configuration and metadata files
@@ -430,8 +444,14 @@ if __name__ == '__main__':
         cfg['rotation']['dir'] = planarfitdir
         cfg['rotation']['files'] = pfile
 
+        if multiprocess > 1:
+            cfg['param']['multiprocessing'] = 'True'
+        else:
+            cfg['param']['multiprocessing'] = 'False'
         if dotimelag:
             cfg['param']['write_spectral_files'] = 'False'
+        else:
+            cfg['param']['write_spectral_files'] = 'True'
 
         # cfg['plot']
 
@@ -444,7 +464,7 @@ if __name__ == '__main__':
 
         os.chdir(workdir)
 
-        heddysoft(cfile, dotimelag=dotimelag)
+        heddysoft(cfile, ncpu=multiprocess, dotimelag=dotimelag)
 
 
     # ----------------------------------------------------------
