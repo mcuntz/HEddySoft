@@ -16,7 +16,8 @@ The following functions are provided:
    check_limits
 
 History
-   * Written, Oct 2025, Matthias Cuntz
+   * Written, Oct 2026, Matthias Cuntz
+   * Check that float to write NaN, Nov 2026, Matthias Cuntz
 
 """
 from typing import Tuple, Optional
@@ -50,6 +51,9 @@ def check_limits(idata, limits):
 
     ii = np.where((idata < limits[0]) | (idata > limits[1]))[0]
     if ii.size > 0:
-        odata[ii] = np.nan
+        if np.isdtype(odata.dtype, 'real floating'):
+            odata[ii] = np.nan
+        else:
+            odata[ii] = -9999
 
     return odata, ii
