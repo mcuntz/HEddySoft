@@ -4,7 +4,7 @@
 # https://slurm.schedmd.com/sbatch.html
 # Name - 8 letters and digits
 #SBATCH --ignore-pbs
-#SBATCH --job-name=hes12_26
+#SBATCH --job-name=fr-hes
 #SBATCH --output=%x-%j.out
 #SBATCH --error=%x-%j.out
 #

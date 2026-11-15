@@ -1,0 +1,42 @@
+Planar_fit_results
+Number_of_selected_wind_sectors:   6
+Minimum_number_of_data_per_wind_sector:   10
+Maximum_average_vertical_wind_component_(m/s):  0.30
+Minimum_average_horizontal_wind_component_(m/s):  0.40
+Beginning_of_planar_fit_determination_period: 2013-01-15
+End_of_planar_fit_determination_period: 2013-03-15
+
+Fitting planes coefficients
+ WindSector       Degrees               B0            B1            B2
+          1      345-  45        0.0068604    -0.0441804     0.0310052
+          2       45- 105        0.0096575    -0.0393693     0.0305861
+          3      105- 165        0.0302337    -0.0906566     0.0310110
+          4      165- 225       -0.0037038    -0.0307474     0.0293373
+          5      225- 285       -0.0158281    -0.0370272     0.0035669
+          6      285- 345       -0.0076458    -0.0711526     0.0184502
+
+Rotation matrices
+Sector number  1; angle:  345 -  45  sector numerosity:  238
+    0.999026     0.001367    -0.044095
+    0.000000     0.999520     0.030990
+    0.044116    -0.030960     0.998547
+Sector number  2; angle:   45 - 105  sector numerosity:  950
+    0.999227     0.001202    -0.039302
+    0.000000     0.999533     0.030572
+    0.039320    -0.030548     0.998760
+Sector number  3; angle:  105 - 165  sector numerosity:  286
+    0.995920     0.002797    -0.090200
+    0.000000     0.999520     0.030996
+    0.090243    -0.030870     0.995441
+Sector number  4; angle:  165 - 225  sector numerosity:  196
+    0.999528     0.000901    -0.030706
+    0.000000     0.999570     0.029325
+    0.030720    -0.029311     0.999098
+Sector number  5; angle:  225 - 285  sector numerosity:  845
+    0.999315     0.000132    -0.037001
+    0.000000     0.999994     0.003567
+    0.037002    -0.003564     0.999309
+Sector number  6; angle:  285 - 345  sector numerosity:  227
+    0.997479     0.001309    -0.070949
+    0.000000     0.999830     0.018447
+    0.070961    -0.018401     0.997309

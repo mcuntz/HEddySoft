@@ -499,13 +499,21 @@ def read_slt_edisol(ifile, config):
 
     with open(ifile, 'rb') as ff:
         # determine number of columns from first byte
-        rec_len = np.fromfile(ff, dtype='<i1', count=1)
+        rec_len = np.fromfile(ff, dtype='<i1', count=1)[0]
         ncol = rec_len // 2
         nanalog = ncol - 4  # 4 sonic signals
-        assert nanalog == len(irga_columns), (
-            f'Number or IRGA columns in input file ({nanalog})'
-            f' do not match number of given IRGA columns: {irga_columns},'
-            f' {irga_names}')
+        # assert nanalog == len(irga_columns), (
+        #     f'Number or IRGA columns in input file ({ifile}: {nanalog})'
+        #     f' do not match number of given IRGA columns: {irga_columns},'
+        #     f' {irga_names}')
+        # try to believe config file
+        # normally half hour gets flag anyway, e.g. not enough Tsonic data
+        if nanalog != len(irga_columns):
+            print(f'        Warning: no column, version, and resolution'
+                  f' information in slt file {ifile}')
+            nanalog = len(irga_columns)
+            ncol = nanalog + 4
+            rec_len = ncol * 2
 
         # read rest of header - ignore
         rec_len = np.fromfile(ff, dtype='<i1', count=rec_len - 1)
@@ -521,7 +529,7 @@ def read_slt_edisol(ifile, config):
     idate = get_dates_from_files(os.path.basename(ifile), file_date_format)[0]
     nrow = edata.shape[0]
     sampling_rate = cfg.get('sonic', 'sampling_rate')
-    msec = round(1. / sampling_rate * 1000.).astype(int)  # ms
+    msec = int(round(1. / sampling_rate * 1000.))  # ms
     idates = idate + np.timedelta64(msec, 'ms') * np.arange(nrow)
 
     df = pd.DataFrame({}, index=idates)

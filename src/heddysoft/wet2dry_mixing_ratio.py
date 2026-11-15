@@ -62,11 +62,11 @@ def wet2dry_mixing_ratio(df, config):
 
     # first H2O so that H2O_dry can be used for CO2
     # assume that H2O unit is mmol mol-1
-    if ((h2o_type.lower() == 'mixing_ratio') or
-        (h2o_type.lower() == 'dry_mixing_ratio')):
+    if ((h2o_type.lower() == 'mixing ratio') or
+        (h2o_type.lower() == 'dry mixing ratio')):
         df['H2O_dry'] = df[h2o_name]
-    elif ((h2o_type.lower() == 'mole_fraction') or
-          (h2o_type.lower() == 'wet_mixing_ratio')):
+    elif ((h2o_type.lower() == 'mole fraction') or
+          (h2o_type.lower() == 'wet mixing ratio')):
         # hwet = ea/p
         # hdry = ea/(p-ea) = ea/p * p/(p-ea) = hwet / (1 - hwet)
         df['H2O_dry'] = df[h2o_name] / (1. - df[h2o_name] * 1e-3)
@@ -74,11 +74,11 @@ def wet2dry_mixing_ratio(df, config):
         raise ValueError(f'h2o_type {h2o_type} not known or implemented')
 
     # CO2
-    if ((co2_type.lower() == 'mixing_ratio') or
-        (co2_type.lower() == 'dry_mixing_ratio')):
+    if ((co2_type.lower() == 'mixing ratio') or
+        (co2_type.lower() == 'dry mixing ratio')):
         df['CO2_dry'] = df[co2_name]
-    elif ((co2_type.lower() == 'mole_fraction') or
-          (co2_type.lower() == 'wet_mixing_ratio')):
+    elif ((co2_type.lower() == 'mole fraction') or
+          (co2_type.lower() == 'wet mixing ratio')):
         # cwet = c/p
         # cdry = c/(p-ea) = c/p * p/(p-ea) = cwet / (1 - hwet) = cwet * (1 + hdry)
         df['CO2_dry'] = df[co2_name] * (1. + df['H2O_dry'] * 1e-3)

@@ -32,10 +32,10 @@ meteodir = '../examples/FR-Hes/meteo'
 # which tower: eiffel (incl. scaffold) or nt (> 2012-05-24 16:00:00)
 tower = 'nt'
 # years = [2017, 2018, 2019, 2020]  # list
-# eiffel
-# years = 1997 + np.arange(24, dtype=int)  # 1997-2020
+# # eiffel
+# years = 1997 + np.arange(26, dtype=int)  # 1997-2022
 # nt
-years = 2012 + np.arange(14, dtype=int)  # 2012-2025
+years = 2012 + np.arange(15, dtype=int)  # 2012-2026
 
 # ----------------------------------------------------------
 # Read, mean, write

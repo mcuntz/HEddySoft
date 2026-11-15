@@ -37,11 +37,13 @@ History
    * Change for HEddySoft, Oct 2026, Matthias Cuntz
    * gzip output files, Oct 2026, Matthias Cuntz
    * Remove inplace=True in pandas methods, Nov 2026, Matthias Cuntz
+   * Detect OS and set directories, Nov 2026, Matthias Cuntz
 
 """
-import time as ptime
-import os
 import datetime as dt
+import os
+import platform
+import time as ptime
 import numpy as np
 import pandas as pd
 from manual_flags import apply_manual_flags
@@ -116,24 +118,38 @@ if __name__ == '__main__':
     # which tower: eiffel (incl. scaffold) or nt (> 2012-05-24 16:00:00)
     tower = 'nt'
     # years = [2022]  # list
-    # eiffel
-    # years = 1997 + np.arange(24, dtype=int)  # 1997-2020
+    # # eiffel
+    # years = 1997 + np.arange(26, dtype=int)  # 1997-2022
     # nt
-    years = 2012 + np.arange(14, dtype=int)  # 2012-2022
+    years = 2012 + np.arange(15, dtype=int)  # 2012-2026
     fullyear = True  # True: end on 31 December
                      # False: end with youngest date in input files
     undef = -9999.   # Set NaN and fill
     fillmeandiurnal = True  # False: keep NaN of raw files
                              # True: replace NaN by mean diurnal cycle
+    # seasonalfile = 'meteo_eiffel_seasonalfile_1997-2022.csv.gz'
     seasonalfile = 'meteo_nt_seasonalfile_2012-2025.csv.gz'
 
     # base directories to which all other directories are relative to
-    # # @Station_calcul_Hesse
-    # prnasbase = 'Z:/Sites_ateliers/BD_Hesse/DB1'
-    # outdir    = 'J:/calc_ec/biomet'
-    # @Matthias
-    prnasbase = '/Users/cuntz/data/inrae/hesse/BD_Hesse/DB1'
-    outdir    = '/Users/cuntz/prog/github/HEddySoft/examples/FR-Hes/meteo/'
+    ios = platform.system()  # Windows, Darwin, Linux
+    if ios == 'Windows':
+        # # Windows - Station_Calcul local
+        # prnasbase = 'J:/BD_Hesse/DB1'
+        # Windows - Station_Calcul NAS
+        prnasbase = 'Z:/Sites_ateliers/BD_Hesse/DB1'
+        outdir    = 'J:/calc_ec/biomet'
+    elif ios == 'Darwin':
+        # # macOS - Matthias with local data
+        # prnasbase = '/Users/cuntz/data/inrae/hesse/BD_Hesse/DB1'
+        # macOS - Matthias with NAS mounted
+        prnasbase = '/Volumes/nancy-eef-prnas/Sites_ateliers/BD_Hesse/DB1'
+        outdir    = '/Users/cuntz/prog/github/HEddySoft/examples/FR-Hes/meteo/'
+    elif ios == 'Linux':
+        # Linux - biocomp
+        prnasbase = '/local-gpu02/pnas/DB1'
+        outdir    = '/home/mcuntz/prog/github/HEddySoft/examples/FR-Hes/meteo/'
+    else:
+        raise ValueError(f'OS not known: {ios}')
 
     nameout = {'PA': 'Pa_1_1_1', 'RH': 'RH_1_1_1', 'TA': 'Ta_1_1_1',
                'SW': 'Rg_1_1_1', 'LW': 'Lwin_1_1_1', 'PAR': 'PPFD_1_1_1'}

@@ -32,18 +32,18 @@ if __name__ == '__main__':
     #
 
     # which tower: Eiffel (incl. scaffold) or NT (> 01.01.2013 00:00:00)
-    tower = 'NT'
+    tower = 'Eiffel'
 
     # must be format: '%Y-%m-%d %H:%M:%S',
     # i.e. 'YYYY-MM-DD hh:mm:ss', e.g. '2019-02-16 03:30:00'
     # Eiffel - Start: 1997-01-01 00:00:00
-    #          Suitable files from: 1998-06-29 12:30:00 or 1998-07-24 20:00:00
+    #          Suitable files from: 1998-06-29 13:00:00 or 1998-07-24 20:00:00
     #          Restart: 2000-04-01 00:00:00
     #          End: 2022-04-08 23:30:00
     # NT - Start SLT: 2012-04-23 18:00:00
     # NT - Start Smartflux: 2019-07-22 08:30:00
-    startdate = '2012-11-15 00:00:00'  # first day and time
-    enddate   = '2024-01-01 00:00:00'  # last day and time (not included)
+    startdate = '1998-06-29 13:00:00'  # first day and time
+    enddate   = '2022-04-09 00:00:00'  # last day and time (not included)
 
     # produce timelag files only
     dotimelag = False
