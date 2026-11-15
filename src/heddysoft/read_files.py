@@ -287,7 +287,8 @@ def read_planar_fit_eddypro(config):
 
     # this is the file coming from the PFM preparation of EddyPro
     if len(files) > 1:
-        print('Warning: multiple planar fit files not implemented yet.')
+        print('        Warning: multiple planar fit files not implemented'
+              ' yet.')
     ifile = files[0]
     with open(ifile, 'r') as ff:
         lines = ff.readlines()
@@ -382,8 +383,8 @@ def read_slt_eddysoft(ifile, config):
         # try to believe config file
         # normally half hour gets flag anyway, e.g. not enough Tsonic data
         if nanalog != len(irga_columns):
-            print(f'Warning: no column, version, and resolution information'
-                  f' in slt file {ifile}')
+            print(f'        Warning: no column, version, and resolution'
+                  f' information in slt file {ifile}')
             nanalog = len(irga_columns)
             ncol = nanalog + 4
             ibytes = ncol * 2
@@ -632,7 +633,8 @@ def read_timelag_eddypro(config):
 
     # this is the file coming from timelag optimization of EddyPro
     if len(files) > 1:
-        print('Warning: multiple EddyPro timelag files not implemented yet.')
+        print('        Warning: multiple EddyPro timelag files not'
+              ' implemented yet.')
     ifile = files[0]
     with open(ifile, 'r') as ff:
         lines = ff.readlines()
