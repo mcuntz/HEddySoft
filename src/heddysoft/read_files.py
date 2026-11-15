@@ -375,10 +375,19 @@ def read_slt_eddysoft(ifile, config):
         ibytes, iversion = np.fromfile(ff, dtype='<i1', count=2)
         ncol = ibytes // 2
         nanalog = ncol - 4  # 4 sonic signals
-        assert nanalog == len(irga_columns), (
-            f'Number or IRGA columns in input file ({nanalog})'
-            f' do not match number of given IRGA columns: {irga_columns},'
-            f' {irga_names}')
+        # assert nanalog == len(irga_columns), (
+        #     f'Number or IRGA columns in input file ({ifile}: {nanalog})'
+        #     f' do not match number of given IRGA columns: {irga_columns},'
+        #     f' {irga_names}')
+        # try to believe config file
+        # normally half hour gets flag anyway, e.g. not enough Tsonic data
+        if nanalog != len(irga_columns):
+            print(f'Warning: no column, version, and resolution information'
+                  f' in slt file {ifile}')
+            nanalog = len(irga_columns)
+            ncol = nanalog + 4
+            ibytes = ncol * 2
+            iversion = -1
 
         # 3 dummy 16-bit values (O. Kolle's EddySoft code)
         _ = np.fromfile(ff, dtype='<i2', count=3)
@@ -386,6 +395,9 @@ def read_slt_eddysoft(ifile, config):
         # information on analog signal, i.e. columns > 4
         ainfo = np.fromfile(ff, dtype='<i1', count=nanalog * 2)
         ares = ainfo[::2]
+        # guess if info from config file
+        if iversion == -1:
+            ares = [1] * nanalog
         # # EddyPro
         # # if mask byte is even, low resolution is used
         # # if mask byte is odd, high resolution is used
