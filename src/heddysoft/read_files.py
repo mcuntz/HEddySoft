@@ -410,7 +410,14 @@ def read_slt_eddysoft(ifile, config):
         # read data
         edata = np.fromfile(ff, dtype='<i2')
 
-    edata = edata.reshape(-1, ncol).astype(float)
+    try:
+        edata = edata.reshape(-1, ncol).astype(float)
+    except ValueError:
+        # if error, make all NaN; will be flagged later
+        print(f'        Warning: corrupt line in slt file {ifile}')
+        sampling_rate = cfg.get('sonic', 'sampling_rate')
+        file_length = cfg.get('sonic', 'file_length')
+        edata = np.full((int(sampling_rate * file_length), ncol), np.nan)
 
     # make datetime index
     # idate = pd.to_datetime(os.path.basename(ifile)[1:12], format='%Y%j%H%M')
