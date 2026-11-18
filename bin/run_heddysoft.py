@@ -32,7 +32,7 @@ if __name__ == '__main__':
     #
 
     # which tower: Eiffel (incl. scaffold) or NT (> 01.01.2013 00:00:00)
-    tower = 'Eiffel'
+    tower = 'NT'
 
     # must be format: '%Y-%m-%d %H:%M:%S',
     # i.e. 'YYYY-MM-DD hh:mm:ss', e.g. '2019-02-16 03:30:00'
@@ -42,15 +42,16 @@ if __name__ == '__main__':
     #          End: 2022-04-08 23:30:00
     # NT - Start SLT: 2012-04-23 18:00:00
     # NT - Start Smartflux: 2019-07-22 08:30:00
-    startdate = '1998-06-29 13:00:00'  # first day and time
-    enddate   = '2022-04-09 00:00:00'  # last day and time (not included)
+    startdate = '2026-02-09 15:00:00'  # first day and time
+    enddate   = '2026-05-01 00:00:00'  # last day and time (not included)
+    # enddate   = '2009-06-26 21:30:00'  # last day and time (not included)
 
     # produce timelag files only
     dotimelag = False
 
     # number of processors to use in parallel
-    multiprocess = 6
-    
+    multiprocess = 1
+
     # ----------------------------------------------------------
     # Immutable files and directories
     #
@@ -350,7 +351,7 @@ if __name__ == '__main__':
                 if os.path.exists(ddir):
                     print('    Copy files year', yy)
                     if issmart:
-                        afiles = glob.glob(f'{ddir}/*.ghg')
+                        afiles = glob.glob(f'{ddir}/*.[gG][hH][gG]')
                         afiles = [ mm.replace('\\', '/') for mm in afiles ]
                         adates = pd.to_datetime(
                             [ os.path.basename(ff)[0:17] for ff in afiles ],
@@ -399,9 +400,9 @@ if __name__ == '__main__':
 
         cfg['sonic']['dir'] = inputdir
         if issmart:
-            files = '20[0-9]*-??-??T??????_*.ghg'
+            files = '20[0-9]*-??-??T??????_*.[gG][hH][gG]'
         else:
-            files = '[a-zA-Z][0-9]*.slt'
+            files = '[a-zA-Z][0-9]*.[sS][lL][tT]'
         cfg['sonic']['files'] = files
         sonic_file_date_format = dfll['FileDateFormat']
         cfg['sonic']['file_date_format'] = sonic_file_date_format.replace('%', '%%')
