@@ -156,7 +156,7 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
         if (diag_count.drop(
                 columns=['AGC', 'Sync', 'Aux_input']) != 0).any(
                     axis=1).any():
-            print(f'        IRGA data flagged in {ifile}.')
+            print(f'        Note: IRGA data flagged in {ifile}.')
             _save_df(odf, output_file)
             return
         # print('      Number and type of LI7200 diagnostic flags raised:')
@@ -217,7 +217,7 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
     ratio_u = nist.min() / nsoll
     odf['complete_sonic_wind (0-1)'] = ratio_u
     if ratio_u < nsoll_ratio:
-        print(f'        Not enough sonic data in {ifile}, only about'
+        print(f'        Note: Not enough sonic data in {ifile}, only about'
               f' {ratio_u * 100:.2f}% (config param.data_complete:'
               f' {nsoll_ratio * 100:.2f}%).')
         _save_df(odf, output_file)
@@ -230,9 +230,9 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
         ratio_irga = df[Tname].notna().sum() / nsoll
         odf[f'complete_irga_{tt} (0-1)'] = ratio_irga
         if ratio_irga < nsoll_ratio:
-            print(f'        Not enough {TT} data after high frequency checks'
-                  f' in {ifile}, only about {ratio_irga * 100:.2f}% (config'
-                  f' param.data_complete: {nsoll_ratio * 100:.2f}%).')
+            print(f'        Note: Not enough {TT} data after high frequency'
+                  f' checks in {ifile}, only about {ratio_irga * 100:.2f}%'
+                  f' (config param.data_complete: {nsoll_ratio * 100:.2f}%).')
             _save_df(odf, output_file)
             return
 
@@ -359,7 +359,7 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
     ratio_u = nist.min() / nsoll
     odf['complete_sonic_wind (0-1)'] = ratio_u
     if ratio_u < nsoll_ratio:
-        print(f'        Not enough sonic data in {ifile}, only about'
+        print(f'        Note: Not enough sonic data in {ifile}, only about'
               f' {ratio_u * 100:.2f}% (config param.data_complete:'
               f' {nsoll_ratio * 100:.2f}%).')
         _save_df(odf, output_file)
@@ -372,9 +372,9 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
         ratio_irga = df[Tname].notna().sum() / nsoll
         odf[f'complete_irga_{tt} (0-1)'] = ratio_irga
         if ratio_irga < nsoll_ratio:
-            print(f'        Not enough {TT} data after high frequency checks'
-                  f' in {ifile}, only about {ratio_irga * 100:.2f}% (config'
-                  f' param.data_complete: {nsoll_ratio * 100:.2f}%).')
+            print(f'        Note: Not enough {TT} data after high frequency'
+                  f' checks in {ifile}, only about {ratio_irga * 100:.2f}%'
+                  f' (config param.data_complete: {nsoll_ratio * 100:.2f}%).')
             _save_df(odf, output_file)
             return
 
@@ -431,7 +431,7 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
     ratio_ts = df['ts_f'].notna().sum() / nsoll
     odf['complete_sonic_ts (0-1)'] = ratio_ts
     if ratio_ts < nsoll_ratio:
-        print(f'        Not enough T_sonic data after interpolation in'
+        print(f'        Note: Not enough T_sonic data after interpolation in'
               f' {ifile}, only about {ratio_ts * 100:.2f}%'
               f' (config param.data_complete: {nsoll_ratio * 100:.2f}%).')
         _save_df(odf, output_file)
@@ -443,16 +443,13 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
     df['w_prime'] = df['w_rot_f'] - df['w_rot_f'].mean()
     # check for Nans and replace NaN by zero
     if df['u_prime'].isna().any():
-        print("          Warning: NaN values detected in u': replacing with"
-              " 0.")
+        print("          Note: NaN values detected in u': replacing with 0.")
         df['u_prime'] = df['u_prime'].fillna(0.)
     if df['v_prime'].isna().any():
-        print("          Warning: NaN values detected in v': replacing with"
-              " 0.")
+        print("          Note: NaN values detected in v': replacing with 0.")
         df['v_prime'] = df['v_prime'].fillna(0.)
     if df['w_prime'].isna().any():
-        print("          Warning: NaN values detected in w': replacing with"
-              " 0.")
+        print("          Note: NaN values detected in w': replacing with 0.")
         df['w_prime'] = df['w_prime'].fillna(0.)
 
     # covariances of wind components
@@ -487,8 +484,8 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
     ratio_h2o = df['h2o_f'].notna().sum() / nsoll
     if ratio_h2o < nsoll_ratio:
         odf['complete_irga_h2o (0-1)'] = ratio_h2o
-        print(f'        Not enough H2O data after interpolation in {ifile},'
-              f' only about {ratio_h2o * 100:.2f}% (config'
+        print(f'        Note: Not enough H2O data after interpolation in'
+              f' {ifile}, only about {ratio_h2o * 100:.2f}% (config'
               f' param.data_complete: {nsoll_ratio * 100:.2f}%).')
         _save_df(odf, output_file)
         return
@@ -499,8 +496,7 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
     else:
         df['T_prime'] = df['T'] - df['T'].mean()
     if df['T_prime'].isna().any():
-        print("          Warning: NaN values detected in T': replacing with"
-              " 0.")
+        print("          Note: NaN values detected in T': replacing with 0.")
         df['T_prime'] = df['T_prime'].fillna(0.)
 
     # mean meteo
@@ -687,8 +683,7 @@ def heddysoft_main(config, df_meteo, output_file, ifile,
         else:
             df[f'{tt}_prime'] = df[f'{tt}_f'] - df[f'{tt}_f'].mean()
         if df[f'{tt}_prime'].isna().any():
-            print(f'        NaN in {TT} detected',
-                  df[f'{tt}_prime'].loc[df[f'{tt}_prime'].isna()])
+            print(f'        Note: NaN in {TT} detected.')
             continue
 
         # covariances and lag times

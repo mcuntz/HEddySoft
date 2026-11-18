@@ -30,6 +30,7 @@ History
    * Written Sep 2026 by Matthias Cuntz, using some code of
      read_metadata_files.py of GEddySoft (read_planar_fit)
    * Remove inplace=True in pandas methods, Nov 2026, Matthias Cuntz
+   * Possible dummy variables in slt files, Nov 2026, Matthias Cuntz
 
 """
 from collections.abc import Iterable
@@ -287,8 +288,7 @@ def read_planar_fit_eddypro(config):
 
     # this is the file coming from the PFM preparation of EddyPro
     if len(files) > 1:
-        print('        Warning: multiple planar fit files not implemented'
-              ' yet.')
+        print('        Note: multiple planar fit files not implemented yet.')
     ifile = files[0]
     with open(ifile, 'r') as ff:
         lines = ff.readlines()
@@ -383,7 +383,7 @@ def read_slt_eddysoft(ifile, config):
         # try to believe config file
         # normally half hour gets flag anyway, e.g. not enough Tsonic data
         if nanalog != len(irga_columns):
-            print(f'        Warning: no column, version, and resolution'
+            print(f'        Note: no column, version, and resolution'
                   f' information in slt file {ifile}')
             nanalog = len(irga_columns)
             ncol = nanalog + 4
@@ -395,10 +395,14 @@ def read_slt_eddysoft(ifile, config):
 
         # information on analog signal, i.e. columns > 4
         ainfo = np.fromfile(ff, dtype='<i1', count=nanalog * 2)
+        # ainfo = np.fromfile(ff, dtype='<i1', count=3 * 2)
         ares = ainfo[::2]
-        # guess if info from config file
+        # O. Kolle's EddySoft code
+        if (iversion == 0):
+            ares[0:6] = 0
+        # guess if info from config file if header wrong
         if iversion == -1:
-            ares = [1] * nanalog
+            ares = [0] * nanalog
         # # EddyPro
         # # if mask byte is even, low resolution is used
         # # if mask byte is odd, high resolution is used
@@ -414,7 +418,7 @@ def read_slt_eddysoft(ifile, config):
         edata = edata.reshape(-1, ncol).astype(float)
     except ValueError:
         # if error, make all NaN; will be flagged later
-        print(f'        Warning: corrupt line in slt file {ifile}')
+        print(f'        Note: corrupted lines in slt file {ifile}')
         sampling_rate = cfg.get('sonic', 'sampling_rate')
         file_length = cfg.get('sonic', 'file_length')
         edata = np.full((int(sampling_rate * file_length), ncol), np.nan)
@@ -475,6 +479,8 @@ def read_slt_eddysoft(ifile, config):
             df[irga_names[i]] = co2_gain * df[irga_names[i]] + co2_offset
         elif irga_names[i].lower().startswith('h2o'):
             df[irga_names[i]] = h2o_gain * df[irga_names[i]] + h2o_offset
+        elif irga_names[i].lower().startswith('dummy'):
+            df[irga_names[i]] = edata[:, irga_columns[i]]
         else:
             raise ValueError(f'Species not implemented: {irga_names[i]}')
 
@@ -516,7 +522,7 @@ def read_slt_edisol(ifile, config):
         # try to believe config file
         # normally half hour gets flag anyway, e.g. not enough Tsonic data
         if nanalog != len(irga_columns):
-            print(f'        Warning: no column, version, and resolution'
+            print(f'        Note: no column, version, and resolution'
                   f' information in slt file {ifile}')
             nanalog = len(irga_columns)
             ncol = nanalog + 4
@@ -532,7 +538,7 @@ def read_slt_edisol(ifile, config):
         edata = edata.reshape(-1, ncol).astype(float)
     except ValueError:
         # if error, make all NaN; will be flagged later
-        print(f'        Warning: corrupt line in slt file {ifile}')
+        print(f'        Note: corrupted lines in slt file {ifile}')
         sampling_rate = cfg.get('sonic', 'sampling_rate')
         file_length = cfg.get('sonic', 'file_length')
         edata = np.full((int(sampling_rate * file_length), ncol), np.nan)
@@ -585,6 +591,8 @@ def read_slt_edisol(ifile, config):
             df[irga_names[i]] = co2_gain * edata[:, irga_columns[i]] + co2_offset
         elif irga_names[i].lower().startswith('h2o'):
             df[irga_names[i]] = h2o_gain * edata[:, irga_columns[i]] + h2o_offset
+        elif irga_names[i].lower().startswith('dummy'):
+            df[irga_names[i]] = edata[:, irga_columns[i]]
         else:
             raise ValueError(f'Species not implemented: {irga_names[i]}')
 
@@ -655,7 +663,7 @@ def read_timelag_eddypro(config):
 
     # this is the file coming from timelag optimization of EddyPro
     if len(files) > 1:
-        print('        Warning: multiple EddyPro timelag files not'
+        print('        Note: multiple EddyPro timelag files not'
               ' implemented yet.')
     ifile = files[0]
     with open(ifile, 'r') as ff:
